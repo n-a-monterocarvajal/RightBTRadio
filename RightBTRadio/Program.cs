@@ -14,6 +14,7 @@ internal static class Program
         }
 
         ApplicationConfiguration.Initialize();
-        // TODO: TrayApplicationContext.
+        using TrayApplicationContext context = new();
+        Application.Run(context);
     }
 }
