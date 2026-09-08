@@ -19,5 +19,5 @@ Deriva del esqueleto de [RightKeyboard](https://github.com/n-a-monterocarvajal/R
 ## Compilar
 
 ```
-dotnet build RightBTRadio.sln
+dotnet build RightBTRadio.slnx
 ```
