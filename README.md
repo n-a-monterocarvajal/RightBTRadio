@@ -37,6 +37,29 @@ Por eso `--apply` termina con ese ciclo cuando el ganador quedó con un problema
 Queda pendiente comprobar si ese ciclo es la única vía. El código lo anota con un
 comentario `ponytail:` que enumera las alternativas sin probar.
 
+## Pendientes anotados en el código
+
+Los comentarios `ponytail:` marcan las simplificaciones deliberadas y lo que queda por
+decidir. Dos importan más que el resto.
+
+**Un factor de permanencia en el modelo.** Hoy la prioridad es lo único que decide, y eso
+supone que los dos radios aparecen a la vez. En la práctica hay uno habilitado y otro que
+se conecta sobre la marcha, y quien tiene dos radios internos ya deshabilitó el que no
+quiere. Windows distingue los dos casos sin ambigüedad; comprobado sobre hardware real:
+
+| | Radio externo | Radio interno |
+|---|---|---|
+| `RemovalPolicy` | 3, `CM_REMOVAL_POLICY_EXPECT_SURPRISE_REMOVAL` | 1, `CM_REMOVAL_POLICY_EXPECT_NO_REMOVAL` |
+| `InLocalMachineContainer` | falso | verdadero |
+| `ContainerId` | propio | `{00000000-0000-0000-FFFF-FFFFFFFFFFFF}` |
+| `EnumeratorName` | USB | USB |
+
+El nombre del enumerador no sirve para distinguirlos. Queda por decidir qué hace ese
+factor con la prioridad y si el usuario puede sobreescribir lo que detecta Windows.
+
+**Si el ciclo de deshabilitar y habilitar es la única forma de refrescar el nodo**, que se
+describe arriba.
+
 ## Elevación
 
 Habilitar y deshabilitar nodos PnP exige privilegios de administrador. El residente
