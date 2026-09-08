@@ -1,0 +1,213 @@
+<Window
+    x:Class="RightBTRadio.WinUI.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:RightBTRadio.WinUI"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="TitleBarArea" Height="40" Padding="16,0,0,0">
+            <TextBlock
+                x:Name="TitleBarText"
+                VerticalAlignment="Center"
+                Style="{StaticResource CaptionTextBlockStyle}" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Padding="32,8,32,32">
+            <StackPanel MaxWidth="1040" Spacing="28">
+
+                <StackPanel Spacing="4">
+                    <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="RightBTRadio" />
+                    <TextBlock
+                        x:Name="Subtitle"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!--  Radios detectados  -->
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Radios detectados" />
+                    <TextBlock
+                        x:Name="DevicesDescription"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        TextWrapping="Wrap" />
+
+                    <Border
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <ListView
+                            x:Name="DevicesList"
+                            Height="200"
+                            Padding="4"
+                            SelectionChanged="OnDeviceSelectionChanged"
+                            SelectionMode="Single">
+                            <ListView.HeaderTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="12,8" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="1.2*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Nombre" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Hardware ID" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Estado" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.HeaderTemplate>
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:RadioRow">
+                                    <Grid Padding="0,6" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="1.2*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind Primary}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind Secondary}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind State}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            x:Name="AliasTextBox"
+                            Header="Alias"
+                            PlaceholderText="Por ejemplo, Toocki" />
+                        <Button
+                            x:Name="AddButton"
+                            Grid.Column="1"
+                            VerticalAlignment="Bottom"
+                            Click="OnAddClick"
+                            Content="Agregar al grupo"
+                            Style="{StaticResource AccentButtonStyle}" />
+                        <Button
+                            x:Name="RemoveButton"
+                            Grid.Column="2"
+                            VerticalAlignment="Bottom"
+                            Click="OnRemoveClick"
+                            Content="Quitar del grupo" />
+                    </Grid>
+                </StackPanel>
+
+                <!--  Prioridad  -->
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Prioridad" />
+                    <TextBlock
+                        x:Name="PriorityDescription"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        TextWrapping="Wrap" />
+
+                    <Border
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <ListView
+                            x:Name="PriorityList"
+                            Height="160"
+                            Padding="4"
+                            SelectionChanged="OnPrioritySelectionChanged"
+                            SelectionMode="Single">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:RadioRow">
+                                    <Grid Padding="0,6" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="1.2*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Width="28"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind Position}" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="{x:Bind Primary}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind Secondary}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind State}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="MoveUpButton" Click="OnMoveUpClick" Content="Subir" />
+                        <Button x:Name="MoveDownButton" Click="OnMoveDownClick" Content="Bajar" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!--  Ajustes generales  -->
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Ajustes generales" />
+                    <Border
+                        Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <StackPanel Spacing="12">
+                            <ToggleSwitch
+                                x:Name="StartWithWindowsToggle"
+                                Header="Iniciar con Windows"
+                                OffContent="No"
+                                OnContent="Sí"
+                                Toggled="OnStartWithWindowsToggled" />
+                            <ToggleSwitch
+                                x:Name="StartMinimizedToggle"
+                                Header="Iniciar minimizado en el área de notificación"
+                                OffContent="No"
+                                OnContent="Sí"
+                                Toggled="OnStartMinimizedToggled" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

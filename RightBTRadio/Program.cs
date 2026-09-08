@@ -1,20 +1,91 @@
+using System.Runtime.InteropServices;
+
 namespace RightBTRadio;
 
 internal static class Program
 {
     internal const string InstanceMutexName = @"Local\RightBTRadio.SingleInstance";
 
+    private const uint AttachParentProcess = 0xFFFFFFFF;
+
     [STAThread]
-    private static void Main()
+    private static int Main(string[] args)
+    {
+        return args.Length == 0 ? RunTray() : RunCommand(args);
+    }
+
+    private static int RunTray()
     {
         using Mutex instanceMutex = new(true, InstanceMutexName, out bool isFirstInstance);
         if (!isFirstInstance)
         {
-            return;
+            return 0;
         }
 
         ApplicationConfiguration.Initialize();
         using TrayApplicationContext context = new();
         Application.Run(context);
+        return 0;
     }
+
+    /// <summary>
+    /// Modos sin interfaz. <c>--apply</c> y <c>--enable-all</c> los ejecuta Windows
+    /// elevados desde las tareas programadas; el resto existe para probar a mano.
+    /// </summary>
+    private static int RunCommand(string[] args)
+    {
+        AttachConsole(AttachParentProcess);
+
+        switch (args[0])
+        {
+            case "--apply":
+                Console.WriteLine($"Nodos cambiados: {RadioService.Apply(LoadConfiguration())}");
+                return 0;
+
+            case "--enable-all":
+                Console.WriteLine($"Nodos habilitados: {RadioService.EnableAll()}");
+                return 0;
+
+            case "--list":
+                foreach (BluetoothRadio radio in BluetoothRadios.Enumerate())
+                {
+                    Console.WriteLine(
+                        $"{(radio.Enabled ? "habilitado   " : "deshabilitado")}  {radio.HardwareId}  {radio.Name}");
+                }
+
+                return 0;
+
+            case "--register-tasks":
+                ElevatedTasks.Register(StartupManager.TrayExecutablePath);
+                Console.WriteLine("Tareas registradas.");
+                return 0;
+
+            case "--unregister-tasks":
+                ElevatedTasks.Unregister();
+                Console.WriteLine("Tareas eliminadas.");
+                return 0;
+
+            default:
+                Console.WriteLine(
+                    "Uso: RightBTRadio.exe [--apply | --enable-all | --list | " +
+                    "--register-tasks | --unregister-tasks]");
+                return 2;
+        }
+    }
+
+    private static Configuration LoadConfiguration()
+    {
+        try
+        {
+            return Configuration.Load();
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or System.Text.Json.JsonException)
+        {
+            Log.Write($"No se pudo cargar la configuración: {error.Message}");
+            return new Configuration();
+        }
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern bool AttachConsole(uint processId);
 }

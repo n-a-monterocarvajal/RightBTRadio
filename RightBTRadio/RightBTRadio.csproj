@@ -10,8 +10,14 @@
     <Version>0.1.0</Version>
     <Description>Mantiene habilitado solo el radio Bluetooth de mayor prioridad.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RightBTRadio.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RightBTRadio.Core\RightBTRadio.Core.csproj" />
   </ItemGroup>
 </Project>

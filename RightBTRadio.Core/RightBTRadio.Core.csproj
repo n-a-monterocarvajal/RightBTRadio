@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RightBTRadio.Core</AssemblyName>
+    <RootNamespace>RightBTRadio</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RightBTRadio" />
+    <InternalsVisibleTo Include="RightBTRadio.WinUI" />
+    <InternalsVisibleTo Include="RightBTRadio.Tests" />
+  </ItemGroup>
+</Project>

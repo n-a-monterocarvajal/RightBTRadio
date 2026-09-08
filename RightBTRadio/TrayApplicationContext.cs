@@ -1,25 +1,29 @@
+using System.Diagnostics;
+
 namespace RightBTRadio;
 
 /// <summary>
-/// Residente de bandeja. Sigue el ciclo de vida de <c>NotifyIcon</c> de
-/// <c>TrayApplicationContext</c> de RightKeyboard, sin su selector de dispositivo,
-/// su IPC ni su frontend en otro proceso.
+/// Residente de bandeja, sin elevar. Escucha los cambios de dispositivos y dispara la
+/// tarea programada que hace el trabajo elevado; la ventana de ajustes es otro proceso,
+/// WinUI 3, que se lanza bajo demanda y se libera al cerrarse.
 /// </summary>
+/// <remarks>
+/// Sigue el ciclo de vida de <c>NotifyIcon</c> de <c>TrayApplicationContext</c> de
+/// RightKeyboard. No hay IPC con la ventana: aquí el residente nunca escribe la
+/// configuración, solo la lee, así que no hay dos escritores que coordinar.
+/// </remarks>
 internal sealed class TrayApplicationContext : ApplicationContext
 {
-    private readonly Configuration configuration;
     private readonly DeviceChangeWindow deviceWindow;
     private readonly NativeTrayMenu menu;
     private readonly NotifyIcon notifyIcon;
-    private SettingsForm? settingsForm;
+    private Process? settingsProcess;
 
     public TrayApplicationContext()
     {
-        configuration = LoadConfiguration();
-
         deviceWindow = new DeviceChangeWindow();
-        deviceWindow.DevicesChanged += Resolve;
-        menu = new NativeTrayMenu(deviceWindow.Handle, ShowSettings, EnableAllRadios, ExitThread);
+        deviceWindow.DevicesChanged += RequestApply;
+        menu = new NativeTrayMenu(deviceWindow.Handle, ShowSettings, RequestEnableAll, ExitThread);
 
         notifyIcon = new NotifyIcon
         {
@@ -36,10 +40,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
             }
         };
 
-        // Resolución inicial: el estado actual manda antes de quedar esperando eventos.
-        Resolve();
+        EnsureTasksRegistered();
 
-        if (!configuration.StartMinimized)
+        // Resolución inicial: el estado actual manda antes de quedar esperando eventos.
+        RequestApply();
+
+        if (!LoadConfiguration().StartMinimized)
         {
             ShowSettings();
         }
@@ -62,43 +68,63 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
     }
 
-    private void Resolve()
+    /// <summary>
+    /// Las tareas se registran una sola vez, con una elevación explícita. A partir de ahí
+    /// la bandeja las dispara sin que Windows vuelva a pedir UAC.
+    /// </summary>
+    private void EnsureTasksRegistered()
     {
-        ResolutionPlan plan = PriorityResolver.Resolve(configuration.DefaultGroup, BluetoothRadios.Enumerate());
-        if (plan.IsEmpty)
+        if (ElevatedTasks.AreRegistered)
         {
             return;
         }
 
-        // Habilitar antes de deshabilitar: así no hay un instante sin ningún radio.
-        if (plan.Enable is not null)
-        {
-            Apply(plan.Enable, enabled: true);
-        }
-
-        foreach (BluetoothRadio radio in plan.Disable)
-        {
-            Apply(radio, enabled: false);
-        }
-    }
-
-    private void Apply(BluetoothRadio radio, bool enabled)
-    {
-        // Un fallo (permisos, dispositivo ocupado) queda registrado y se reintenta en el
-        // próximo evento de cambio de dispositivos; la bandeja no se entera.
-        if (!DeviceControl.SetEnabled(radio.InstanceId, enabled))
+        DialogResult answer = MessageBox.Show(
+            "RightBTRadio necesita registrar dos tareas programadas para poder habilitar y " +
+            "deshabilitar radios Bluetooth.\n\n" +
+            "Windows va a pedir permiso de administrador una sola vez. Después de esto la " +
+            "aplicación funciona sin volver a pedirlo.\n\n¿Registrarlas ahora?",
+            "RightBTRadio",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question);
+        if (answer != DialogResult.Yes)
         {
             return;
         }
 
-        Log.Write($"{(enabled ? "Habilitado" : "Deshabilitado")} {radio.Name} ({radio.HardwareId}).");
+        try
+        {
+            using Process? elevated = Process.Start(new ProcessStartInfo(StartupManager.TrayExecutablePath)
+            {
+                Arguments = "--register-tasks",
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+            elevated?.WaitForExit();
+        }
+        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            // El usuario canceló el aviso de UAC, o no hay permiso para elevar.
+            Log.Write($"No se pudieron registrar las tareas: {error.Message}");
+        }
+
+        if (!ElevatedTasks.AreRegistered)
+        {
+            notifyIcon.ShowBalloonTip(
+                5000,
+                "RightBTRadio",
+                "Sin las tareas programadas no se puede cambiar el estado de los radios.",
+                ToolTipIcon.Warning);
+        }
     }
 
-    private void EnableAllRadios()
+    private void RequestApply() => ElevatedTasks.Run(ElevatedTasks.ApplyTaskName);
+
+    private void RequestEnableAll()
     {
-        foreach (BluetoothRadio radio in BluetoothRadios.Enumerate().Where(radio => !radio.Enabled))
+        if (!ElevatedTasks.Run(ElevatedTasks.EnableAllTaskName))
         {
-            Apply(radio, enabled: true);
+            return;
         }
 
         notifyIcon.ShowBalloonTip(
@@ -108,21 +134,80 @@ internal sealed class TrayApplicationContext : ApplicationContext
             ToolTipIcon.Info);
     }
 
+    /// <summary>
+    /// Busca la ventana de ajustes junto al ejecutable de bandeja, que es donde queda
+    /// instalada. La tercera ruta cubre la compilación de desarrollo, donde cada proyecto
+    /// escribe en su propia carpeta y todavía no hay instalador que las junte.
+    /// </summary>
+    private static string? FindSettingsExecutable()
+    {
+        const string name = "RightBTRadio.WinUI.exe";
+        string configuration = Path.GetFileName(Path.GetDirectoryName(
+            AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))) ?? "Debug";
+
+        string[] candidates =
+        [
+            Path.Combine(AppContext.BaseDirectory, name),
+            Path.Combine(AppContext.BaseDirectory, "ui", name),
+            // ponytail: rutas de desarrollo derivadas del árbol de compilación. Son dos
+            // porque una compilación de la solución lleva Platform=x64 y una del proyecto
+            // no. Sobran en cuanto el instalador publique ambos ejecutables juntos.
+            Path.GetFullPath(Path.Combine(
+                AppContext.BaseDirectory,
+                @"..\..\..\..\RightBTRadio.WinUI\bin",
+                configuration,
+                @"net10.0-windows10.0.19041.0\win-x64",
+                name)),
+            Path.GetFullPath(Path.Combine(
+                AppContext.BaseDirectory,
+                @"..\..\..\..\RightBTRadio.WinUI\bin\x64",
+                configuration,
+                "net10.0-windows10.0.19041.0",
+                name))
+        ];
+
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
     private void ShowSettings()
     {
-        if (settingsForm is not null)
+        if (settingsProcess is { HasExited: false })
         {
-            settingsForm.Activate();
             return;
         }
 
-        settingsForm = new SettingsForm(configuration);
-        settingsForm.FormClosed += (_, _) =>
+        string? executable = FindSettingsExecutable();
+        if (executable is null)
         {
-            settingsForm = null;
-            Resolve();
-        };
-        settingsForm.Show();
+            MessageBox.Show(
+                "No se encontró RightBTRadio.WinUI.exe junto al ejecutable de bandeja.",
+                "RightBTRadio",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        try
+        {
+            settingsProcess = Process.Start(new ProcessStartInfo(executable) { UseShellExecute = false });
+        }
+        catch (System.ComponentModel.Win32Exception error)
+        {
+            MessageBox.Show(
+                $"No se pudo abrir la ventana de ajustes.\n\n{error.Message}",
+                "RightBTRadio",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        if (settingsProcess is null)
+        {
+            return;
+        }
+
+        settingsProcess.EnableRaisingEvents = true;
+        settingsProcess.Exited += (_, _) => RequestApply();
     }
 
     protected override void Dispose(bool disposing)
@@ -130,10 +215,10 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if (disposing)
         {
             notifyIcon.Visible = false;
-            settingsForm?.Dispose();
             menu.Dispose();
             deviceWindow.Dispose();
             notifyIcon.Dispose();
+            settingsProcess?.Dispose();
         }
 
         base.Dispose(disposing);

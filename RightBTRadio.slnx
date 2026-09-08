@@ -1,4 +1,8 @@
 <Solution>
+  <Project Path="RightBTRadio.Core/RightBTRadio.Core.csproj" />
   <Project Path="RightBTRadio.Tests/RightBTRadio.Tests.csproj" />
+  <Project Path="RightBTRadio.WinUI/RightBTRadio.WinUI.csproj">
+    <Platform Project="x64" />
+  </Project>
   <Project Path="RightBTRadio/RightBTRadio.csproj" />
 </Solution>
