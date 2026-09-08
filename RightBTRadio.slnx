@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="RightBTRadio.Tests/RightBTRadio.Tests.csproj" />
+  <Project Path="RightBTRadio/RightBTRadio.csproj" />
+</Solution>
