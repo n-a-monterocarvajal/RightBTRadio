@@ -2,14 +2,19 @@ namespace RightBTRadio;
 
 /// <summary>
 /// Ventana de ajustes: dispositivos detectados, orden de prioridad y ajustes generales.
-/// Sigue el patrón de <c>SettingsDialog</c> de RightKeyboard —WinForms construido en
-/// código, sin diseñador— con una fracción de su superficie.
+/// Usa la capa Fluent de RightKeyboard sobre WinForms.
 /// </summary>
-internal sealed class SettingsForm : Form
+/// <remarks>
+/// La navegación es una lista lateral, no un <see cref="TabControl"/>. WinForms no deja
+/// pintar la tira de pestañas sin dibujarla a mano, así que en tema oscuro queda clara
+/// sobre fondo oscuro. La lista lateral usa controles que la paleta ya cubre y además
+/// es el patrón de navegación de Fluent.
+/// </remarks>
+internal sealed class SettingsForm : FluentForm
 {
     private readonly Configuration configuration;
     private readonly ListView devicesList = NewListView();
-    private readonly TextBox aliasBox = new() { Dock = DockStyle.Fill };
+    private readonly TextBox aliasBox = new() { Dock = DockStyle.Fill, BorderStyle = BorderStyle.FixedSingle };
     private readonly Button addButton = new() { Text = "Agregar al grupo", AutoSize = true };
     private readonly Button removeButton = new() { Text = "Quitar del grupo", AutoSize = true };
     private readonly ListView priorityList = NewListView();
@@ -17,26 +22,55 @@ internal sealed class SettingsForm : Form
     private readonly Button downButton = new() { Text = "Bajar", AutoSize = true };
     private readonly CheckBox startWithWindows = new() { Text = "Iniciar con Windows", AutoSize = true };
     private readonly CheckBox startMinimized = new() { Text = "Iniciar minimizado en la bandeja", AutoSize = true };
+    private readonly Panel content = new() { Dock = DockStyle.Fill };
     private IReadOnlyList<BluetoothRadio> radios = [];
     private bool loading;
 
     public SettingsForm(Configuration configuration)
+        : base(FluentBackdropKind.Main)
     {
         this.configuration = configuration;
 
         Text = "RightBTRadio";
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(760, 460);
-        MinimumSize = new Size(620, 400);
+        ClientSize = new Size(840, 500);
+        MinimumSize = new Size(720, 460);
         StartPosition = FormStartPosition.CenterScreen;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
-        TabControl tabs = new() { Dock = DockStyle.Fill };
-        tabs.TabPages.Add(BuildDevicesPage());
-        tabs.TabPages.Add(BuildPriorityPage());
-        tabs.TabPages.Add(BuildGeneralPage());
-        Controls.Add(tabs);
+        Panel devicesPage = BuildDevicesPage();
+        Panel priorityPage = BuildPriorityPage();
+        Panel generalPage = BuildGeneralPage();
+        content.Controls.Add(devicesPage);
+        content.Controls.Add(priorityPage);
+        content.Controls.Add(generalPage);
 
+        FlowLayoutPanel navigation = new()
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            Margin = new Padding(0, 0, 12, 0)
+        };
+        navigation.Controls.Add(NewNavigationItem("Dispositivos", devicesPage, selected: true));
+        navigation.Controls.Add(NewNavigationItem("Prioridad", priorityPage, selected: false));
+        navigation.Controls.Add(NewNavigationItem("Ajustes generales", generalPage, selected: false));
+
+        TableLayoutPanel root = new()
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Padding = new Padding(12)
+        };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        root.Controls.Add(navigation, 0, 0);
+        root.Controls.Add(content, 1, 0);
+        Controls.Add(root);
+
+        devicesList.Resize += (_, _) => FitColumns(devicesList, 0.30, 0.48, 0.22);
+        priorityList.Resize += (_, _) => FitColumns(priorityList, 0.30, 0.46, 0.24);
         devicesList.SelectedIndexChanged += (_, _) => OnDeviceSelected();
         addButton.Click += (_, _) => AddOrUpdateSelectedDevice();
         removeButton.Click += (_, _) => RemoveSelectedDevice();
@@ -55,21 +89,72 @@ internal sealed class SettingsForm : Form
         View = View.Details,
         FullRowSelect = true,
         MultiSelect = false,
-        HideSelection = false
+        HideSelection = false,
+        BorderStyle = BorderStyle.None
     };
 
-    private TabPage BuildDevicesPage()
+    private RadioButton NewNavigationItem(string text, Panel page, bool selected)
+    {
+        RadioButton item = new()
+        {
+            Text = text,
+            Appearance = Appearance.Button,
+            FlatStyle = FlatStyle.Flat,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(10, 0, 0, 0),
+            Size = new Size(168, 36),
+            Margin = new Padding(0, 0, 0, 4),
+            Checked = selected
+        };
+
+        page.Visible = selected;
+        item.CheckedChanged += (_, _) =>
+        {
+            page.Visible = item.Checked;
+            if (item.Checked)
+            {
+                page.BringToFront();
+            }
+        };
+
+        return item;
+    }
+
+    private static Label NewTitle(string text) => new()
+    {
+        Text = text,
+        AutoSize = true,
+        Dock = DockStyle.Top,
+        Font = FluentTypography.CreateTitleFont(14f),
+        Margin = new Padding(0),
+        Padding = new Padding(0, 0, 0, 8)
+    };
+
+    private static FluentTableLayoutPanel NewCard(Control content)
+    {
+        FluentTableLayoutPanel card = new()
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 1,
+            Padding = new Padding(8)
+        };
+        card.Controls.Add(content, 0, 0);
+        return card;
+    }
+
+    private Panel BuildDevicesPage()
     {
         devicesList.Columns.Add("Nombre", 240);
-        devicesList.Columns.Add("Hardware ID", 300);
-        devicesList.Columns.Add("Estado", 140);
+        devicesList.Columns.Add("Hardware ID", 320);
+        devicesList.Columns.Add("Estado", 150);
 
         TableLayoutPanel actions = new()
         {
             Dock = DockStyle.Bottom,
             AutoSize = true,
             ColumnCount = 4,
-            Padding = new Padding(0, 8, 0, 0)
+            Padding = new Padding(0, 10, 0, 0)
         };
         actions.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -89,52 +174,58 @@ internal sealed class SettingsForm : Form
         actions.Controls.Add(addButton, 2, 0);
         actions.Controls.Add(removeButton, 3, 0);
 
-        TabPage page = new("Dispositivos") { Padding = new Padding(12) };
-        page.Controls.Add(devicesList);
+        Panel page = new() { Dock = DockStyle.Fill };
+        page.Controls.Add(NewCard(devicesList));
         page.Controls.Add(actions);
+        page.Controls.Add(NewTitle("Dispositivos"));
         return page;
     }
 
-    private TabPage BuildPriorityPage()
+    private Panel BuildPriorityPage()
     {
-        priorityList.Columns.Add("Alias", 200);
-        priorityList.Columns.Add("Nombre", 240);
-        priorityList.Columns.Add("Estado", 140);
+        priorityList.Columns.Add("Alias", 220);
+        priorityList.Columns.Add("Nombre", 260);
+        priorityList.Columns.Add("Estado", 150);
 
         FlowLayoutPanel actions = new()
         {
             Dock = DockStyle.Bottom,
             AutoSize = true,
-            Padding = new Padding(0, 8, 0, 0)
+            Padding = new Padding(0, 10, 0, 0)
         };
         actions.Controls.Add(upButton);
         actions.Controls.Add(downButton);
-        actions.Controls.Add(new Label
+        Label hint = new()
         {
             Text = "El primero de la lista es el que queda habilitado.",
             AutoSize = true,
             Margin = new Padding(12, 6, 0, 0)
-        });
+        };
+        FluentTheme.Mark(hint, FluentThemeRole.SecondaryText);
+        actions.Controls.Add(hint);
 
-        TabPage page = new("Prioridad") { Padding = new Padding(12) };
-        page.Controls.Add(priorityList);
+        Panel page = new() { Dock = DockStyle.Fill };
+        page.Controls.Add(NewCard(priorityList));
         page.Controls.Add(actions);
+        page.Controls.Add(NewTitle("Prioridad"));
         return page;
     }
 
-    private TabPage BuildGeneralPage()
+    private Panel BuildGeneralPage()
     {
-        FlowLayoutPanel layout = new()
+        FlowLayoutPanel options = new()
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
-            WrapContents = false
+            WrapContents = false,
+            Padding = new Padding(4)
         };
-        layout.Controls.Add(startWithWindows);
-        layout.Controls.Add(startMinimized);
+        options.Controls.Add(startWithWindows);
+        options.Controls.Add(startMinimized);
 
-        TabPage page = new("Ajustes generales") { Padding = new Padding(12) };
-        page.Controls.Add(layout);
+        Panel page = new() { Dock = DockStyle.Fill };
+        page.Controls.Add(NewCard(options));
+        page.Controls.Add(NewTitle("Ajustes generales"));
         return page;
     }
 
@@ -187,6 +278,25 @@ internal sealed class SettingsForm : Form
         }
 
         OnDeviceSelected();
+        RefreshTheme();
+    }
+
+    /// <summary>
+    /// Reparte el ancho disponible entre las columnas. Sin esto, los anchos fijos
+    /// desbordan la lista y aparece una barra horizontal que corta la última columna.
+    /// </summary>
+    private static void FitColumns(ListView list, params double[] fractions)
+    {
+        int available = list.ClientSize.Width - SystemInformation.VerticalScrollBarWidth;
+        if (available <= 0)
+        {
+            return;
+        }
+
+        for (int index = 0; index < list.Columns.Count && index < fractions.Length; index++)
+        {
+            list.Columns[index].Width = (int)(available * fractions[index]);
+        }
     }
 
     private static string GroupedState(BluetoothRadio radio) => radio.Enabled ? "Habilitado" : "Deshabilitado";
