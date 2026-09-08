@@ -13,7 +13,7 @@ public sealed class PriorityResolverTests
     };
 
     private static BluetoothRadio Radio(string hardwareId, bool enabled = true) =>
-        new(hardwareId, $@"INSTANCE\{hardwareId}", hardwareId, enabled);
+        new(hardwareId, $@"INSTANCE\{hardwareId}", hardwareId, enabled ? 0u : BluetoothRadio.ProblemDisabled);
 
     [Test]
     public void DeshabilitaLosDeMenorPrioridadYDejaElPrimero()
@@ -77,10 +77,40 @@ public sealed class PriorityResolverTests
     }
 
     [Test]
+    public void ElGanadorSeInformaAunqueNoHagaFaltaHabilitarlo()
+    {
+        ResolutionPlan plan = PriorityResolver.Resolve(
+            Group("EXTERNO", "INTERNO"),
+            [Radio("EXTERNO"), Radio("INTERNO")]);
+
+        Assert.That(plan.Winner?.HardwareId, Is.EqualTo("EXTERNO"));
+        Assert.That(plan.Enable, Is.Null);
+    }
+
+    [Test]
+    public void UnGanadorConProblemaDeInstalacionSigueGanando()
+    {
+        // Con dos radios presentes Windows deja al segundo en CM_PROB_FAILED_INSTALL.
+        // No es lo mismo que estar deshabilitado, y no debe cambiar la prioridad: el
+        // problema se resuelve reenumerando el nodo una vez que el otro se deshabilita.
+        BluetoothRadio conProblema = new("EXTERNO", @"INSTANCE\EXTERNO", "Externo", Problem: 31);
+
+        ResolutionPlan plan = PriorityResolver.Resolve(
+            Group("EXTERNO", "INTERNO"),
+            [conProblema, Radio("INTERNO")]);
+
+        Assert.That(conProblema.Enabled, Is.True);
+        Assert.That(conProblema.HasProblem, Is.True);
+        Assert.That(plan.Winner?.HardwareId, Is.EqualTo("EXTERNO"));
+        Assert.That(plan.Enable, Is.Null, "no estaba deshabilitado, así que no hay que habilitarlo");
+        Assert.That(plan.Disable.Select(radio => radio.HardwareId), Is.EqualTo(new[] { "INTERNO" }));
+    }
+
+    [Test]
     public void ConDosRadiosIdenticosElegirUnoDeFormaDeterminista()
     {
-        BluetoothRadio primero = new("IGUAL", @"INSTANCE\A", "A", Enabled: true);
-        BluetoothRadio segundo = new("IGUAL", @"INSTANCE\B", "B", Enabled: true);
+        BluetoothRadio primero = new("IGUAL", @"INSTANCE\A", "A", Problem: 0);
+        BluetoothRadio segundo = new("IGUAL", @"INSTANCE\B", "B", Problem: 0);
 
         ResolutionPlan directo = PriorityResolver.Resolve(Group("IGUAL"), [primero, segundo]);
         ResolutionPlan inverso = PriorityResolver.Resolve(Group("IGUAL"), [segundo, primero]);

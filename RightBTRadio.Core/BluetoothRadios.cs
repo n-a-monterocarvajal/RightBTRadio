@@ -16,7 +16,6 @@ internal static class BluetoothRadios
     private const uint SpdrpHardwareId = 0x00000001;
     private const uint SpdrpFriendlyName = 0x0000000C;
     private const uint DnHasProblem = 0x00000400;
-    private const uint CmProbDisabled = 22;
     private static readonly nint InvalidHandleValue = new(-1);
 
     /// <summary>Clase de instalación Bluetooth.</summary>
@@ -68,7 +67,7 @@ internal static class BluetoothRadios
                     hardwareIds[0],
                     instanceId,
                     name,
-                    IsEnabled(deviceInfo.DeviceInstance)));
+                    ReadProblem(deviceInfo.DeviceInstance)));
 
                 deviceInfo = new DeviceInfoData { Size = (uint)Marshal.SizeOf<DeviceInfoData>() };
             }
@@ -84,16 +83,16 @@ internal static class BluetoothRadios
     internal static bool IsChildOfARadio(string instanceId) =>
         ChildEnumerators.Any(prefix => instanceId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
 
-    private static bool IsEnabled(uint deviceInstance)
+    private static uint ReadProblem(uint deviceInstance)
     {
         if (CM_Get_DevNode_Status(out uint status, out uint problem, deviceInstance, 0) != 0)
         {
-            // Sin estado fiable, tratarlo como habilitado: la resolución lo intentará
-            // deshabilitar si toca y el fallo se registra ahí.
-            return true;
+            // Sin estado fiable, tratarlo como sano: la resolución lo intentará cambiar
+            // si toca y el fallo se registra ahí.
+            return 0;
         }
 
-        return (status & DnHasProblem) == 0 || problem != CmProbDisabled;
+        return (status & DnHasProblem) == 0 ? 0 : problem;
     }
 
     private static string? ReadInstanceId(nint deviceSet, ref DeviceInfoData deviceInfo)

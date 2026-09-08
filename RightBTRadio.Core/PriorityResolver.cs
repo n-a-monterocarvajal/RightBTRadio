@@ -1,12 +1,20 @@
 namespace RightBTRadio;
 
 /// <summary>
-/// Cambios necesarios para que solo quede habilitado el radio de mayor prioridad.
-/// Vacío cuando el estado ya es el correcto.
+/// Qué radio del grupo debe quedar habilitado y qué cambios hacen falta para llegar ahí.
 /// </summary>
-internal sealed record ResolutionPlan(BluetoothRadio? Enable, IReadOnlyList<BluetoothRadio> Disable)
+/// <param name="Winner">
+/// El radio presente de mayor prioridad, esté ya habilitado o no. Nulo si no hay ninguno
+/// del grupo presente.
+/// </param>
+/// <param name="Enable">El ganador, solo si estaba deshabilitado.</param>
+/// <param name="Disable">Los demás presentes del grupo que estén habilitados.</param>
+internal sealed record ResolutionPlan(
+    BluetoothRadio? Winner,
+    BluetoothRadio? Enable,
+    IReadOnlyList<BluetoothRadio> Disable)
 {
-    public static readonly ResolutionPlan Empty = new(null, []);
+    public static readonly ResolutionPlan Empty = new(null, null, []);
 
     public bool IsEmpty => Enable is null && Disable.Count == 0;
 }
@@ -45,6 +53,7 @@ internal static class PriorityResolver
 
         BluetoothRadio winner = candidates[0];
         return new ResolutionPlan(
+            winner,
             winner.Enabled ? null : winner,
             candidates.Skip(1).Where(radio => radio.Enabled).ToList());
     }

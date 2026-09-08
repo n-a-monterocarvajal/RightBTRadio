@@ -21,6 +21,22 @@ Deriva del esqueleto de [RightKeyboard](https://github.com/n-a-monterocarvajal/R
 El residente nunca escribe la configuración: solo la lee. La ventana de ajustes es la
 única que escribe. Por eso no hace falta el IPC que sí necesita RightKeyboard.
 
+## El conflicto entre dos radios
+
+Windows no maneja dos radios Bluetooth a la vez, a diferencia de lo que hace con dos
+antenas Wi-Fi. Con los dos presentes, uno queda con el código de problema 31,
+`CM_PROB_FAILED_INSTALL`: Windows no carga su controlador. Esa es la razón de ser de
+esta utilidad.
+
+Deshabilitar al radio perdedor no basta: el nodo del ganador no se recupera solo cuando
+el conflicto desaparece. Medido sobre hardware real, `CM_Reenumerate_DevNode` con
+`CM_REENUMERATE_RETRY_INSTALLATION` deja el problema 31 intacto; un ciclo de
+deshabilitar y volver a habilitar el nodo del ganador lo lleva a 0 en unos segundos.
+Por eso `--apply` termina con ese ciclo cuando el ganador quedó con un problema.
+
+Queda pendiente comprobar si ese ciclo es la única vía. El código lo anota con un
+comentario `ponytail:` que enumera las alternativas sin probar.
+
 ## Elevación
 
 Habilitar y deshabilitar nodos PnP exige privilegios de administrador. El residente

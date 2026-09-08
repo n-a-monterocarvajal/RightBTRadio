@@ -157,7 +157,12 @@ public sealed partial class SettingsWindow : Window
         }
     }
 
-    private static string State(BluetoothRadio radio) => radio.Enabled ? "Habilitado" : "Deshabilitado";
+    private static string State(BluetoothRadio radio) => radio switch
+    {
+        { Enabled: false } => "Deshabilitado",
+        { HasProblem: true } => $"Con problema {radio.Problem}",
+        _ => "Habilitado"
+    };
 
     private static bool Matches(ConfiguredDevice device, string hardwareId) =>
         string.Equals(device.HardwareId, hardwareId, StringComparison.OrdinalIgnoreCase);

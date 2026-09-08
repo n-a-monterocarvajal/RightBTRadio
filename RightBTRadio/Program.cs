@@ -50,7 +50,7 @@ internal static class Program
                 foreach (BluetoothRadio radio in BluetoothRadios.Enumerate())
                 {
                     Console.WriteLine(
-                        $"{(radio.Enabled ? "habilitado   " : "deshabilitado")}  {radio.HardwareId}  {radio.Name}");
+                        $"problema {radio.Problem,-3}  {radio.HardwareId}  {radio.Name}");
                 }
 
                 return 0;
