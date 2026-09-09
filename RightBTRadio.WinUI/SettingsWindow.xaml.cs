@@ -82,6 +82,7 @@ public sealed partial class SettingsWindow : Window
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(TitleBarArea);
+        SetWindowIcon();
         TryEnableBackdrop();
         ResizeForCurrentDpi();
 
@@ -151,6 +152,29 @@ public sealed partial class SettingsWindow : Window
         AutomationProperties.SetAutomationId(StartMinimizedToggle, SettingsVisualContract.StartMinimizedToggleId);
         AutomationProperties.SetAutomationId(DevicesDescription, SettingsVisualContract.DevicesDescriptionId);
         AutomationProperties.SetAutomationId(PriorityDescription, SettingsVisualContract.PriorityDescriptionId);
+    }
+
+    /// <summary>
+    /// Icono de la barra de tareas y de Alt+Tab. La barra de título lo muestra aparte,
+    /// desde el XAML, porque con <c>ExtendsContentIntoTitleBar</c> el marco no dibuja el
+    /// suyo.
+    /// </summary>
+    private void SetWindowIcon()
+    {
+        string icon = Path.Combine(AppContext.BaseDirectory, @"Assets\RightBTRadio.ico");
+        if (!File.Exists(icon))
+        {
+            return;
+        }
+
+        try
+        {
+            AppWindow.SetIcon(icon);
+        }
+        catch (Exception error) when (error is ArgumentException or IOException)
+        {
+            Log.Write($"No se pudo aplicar el icono de la ventana: {error.Message}");
+        }
     }
 
     private void TryEnableBackdrop()

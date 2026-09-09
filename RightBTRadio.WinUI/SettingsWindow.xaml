@@ -14,10 +14,19 @@
         </Grid.RowDefinitions>
 
         <Grid x:Name="TitleBarArea" Height="40" Padding="16,0,0,0">
-            <TextBlock
-                x:Name="TitleBarText"
+            <StackPanel
                 VerticalAlignment="Center"
-                Style="{StaticResource CaptionTextBlockStyle}" />
+                Orientation="Horizontal"
+                Spacing="10">
+                <Image
+                    Width="16"
+                    Height="16"
+                    Source="ms-appx:///Assets/RightBTRadio.png" />
+                <TextBlock
+                    x:Name="TitleBarText"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CaptionTextBlockStyle}" />
+            </StackPanel>
         </Grid>
 
         <ScrollViewer Grid.Row="1" Padding="32,8,32,32">

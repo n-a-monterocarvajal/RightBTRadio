@@ -26,6 +26,24 @@
   </ItemGroup>
 
   <!--
+    El ICO va junto al ejecutable para AppWindow.SetIcon; el PNG lo muestra la barra de
+    título, que con ExtendsContentIntoTitleBar tiene que dibujar el suyo. Van como None y
+    no como Content porque en un proyecto WinUI un Content entra en el índice de recursos,
+    y aquí solo hace falta que se copien.
+  -->
+  <ItemGroup>
+    <None Include="..\assets\RightBTRadio.ico" Link="Assets\RightBTRadio.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <Content Include="..\assets\RightBTRadio.png" Link="Assets\RightBTRadio.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+
+  <!--
     Tomado de RightKeyboard.WinUI. `dotnet publish` no conserva estos recursos generados
     para una aplicación WinUI no empaquetada. Sin ellos XamlControlsResources no resuelve
     el tema y la ventana publicada se cierra con 0xC000027B, aunque la carpeta de

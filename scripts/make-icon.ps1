@@ -1,15 +1,28 @@
 <#
 .SYNOPSIS
-    Generates assets/RightBTRadio.ico from code.
+    Generates assets/RightBTRadio.ico from Material Design Icons path data.
 
 .DESCRIPTION
-    The mark is a beacon: a filled dot with signal arcs radiating from it, standing for
-    the one radio the application keeps on the air. It is drawn here rather than shipped
-    as a binary asset so the icon is reproducible, reviewable in a diff, and provably
-    ours - the icon RightKeyboard uses arrived with its pre-fork import and carries a
-    different licence.
+    The mark composes two Material Design Icons shapes the way MDI's own "-check"
+    variants do, such as cookie-check: the subject, and the standard check badge in the
+    bottom-right corner. Here the subject is `bluetooth` and the badge says the priority
+    is resolved.
 
-    Small sizes drop to two arcs and a heavier stroke: three thin arcs smear at 16 px.
+    The paths are the verbatim `d` attributes from the MDI library, drawn on its 24x24
+    grid. WPF parses them: its path mini-language is a superset of SVG path data, so no
+    parser of our own is needed and the shapes stay exactly as MDI drew them.
+
+    MDI's own "-check" icons carve the subject where the badge sits. Here the bluetooth
+    glyph is scaled into the upper-left instead, which leaves the corner free without
+    altering a shape that is not ours to redraw.
+
+    Attribution: Material Design Icons by Pictogrammers, Apache License 2.0. See the
+    licence section of README.md.
+
+    The Bluetooth figure mark is a trademark of Bluetooth SIG, and MDI's Apache licence
+    covers the artwork, not trademark rights. Raised and decided by the project owner.
+
+    Small sizes drop the badge: below 24 px the check smears into the glyph.
 
     Entries are PNG-compressed, which Windows has supported since Vista and this
     application requires Windows 11 anyway.
@@ -26,100 +39,77 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName PresentationCore, PresentationFramework, WindowsBase
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 if (-not $OutputPath) {
     $OutputPath = Join-Path $repositoryRoot 'assets/RightBTRadio.ico'
 }
 
-# Azul de la marca y el mismo verde que el indicador de conexión de la ventana.
-$beaconColor = [System.Drawing.Color]::FromArgb(255, 15, 108, 189)
-$checkColor = [System.Drawing.Color]::FromArgb(255, 16, 124, 65)
+# Datos de ruta de Material Design Icons, rejilla 24x24.
+$bluetoothPath = 'M14.88,16.29L13,18.17V14.41M13,5.83L14.88,7.71L13,9.58M17.71,7.71L12,2H11V9.58L6.41,5L5,6.41L10.59,12L5,17.58L6.41,19L11,14.41V22H12L17.71,16.29L13.41,12L17.71,7.71Z'
+# La insignia de conformidad que MDI repite en todas sus variantes «-check».
+$checkPath = 'M22.5 17.25L17.75 22L15 19L16.16 17.84L17.75 19.43L21.34 15.84L22.5 17.25Z'
+
+$bluetoothBrush = New-Object System.Windows.Media.SolidColorBrush(
+    [System.Windows.Media.Color]::FromRgb(15, 108, 189))
+# El mismo verde que el indicador de conexión de la ventana de ajustes.
+$checkBrush = New-Object System.Windows.Media.SolidColorBrush(
+    [System.Windows.Media.Color]::FromRgb(16, 124, 65))
 
 function New-MarkPng([int]$Size) {
-    $bitmap = New-Object System.Drawing.Bitmap($Size, $Size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    $visual = New-Object System.Windows.Media.DrawingVisual
+    $context = $visual.RenderOpen()
     try {
-        $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $graphics.Clear([System.Drawing.Color]::Transparent)
+        # Todo se dibuja en la rejilla de 24 de MDI y se escala al tamaño pedido al final.
+        $context.PushTransform((New-Object System.Windows.Media.ScaleTransform(
+            ($Size / 24), ($Size / 24))))
 
-        $small = $Size -lt 32
+        $bluetooth = [System.Windows.Media.Geometry]::Parse($bluetoothPath)
+        $withBadge = $Size -ge 24
 
-        # Faro: el radio que la aplicación deja emitiendo.
-        $centerX = $Size * 0.20
-        $centerY = $Size * 0.74
-        $dotRadius = $Size * 0.105
+        if ($withBadge) {
+            # Encoger el glifo hacia la esquina superior izquierda para dejar libre el
+            # rincón de la insignia. El glifo mide 12,71 x 20 desde (5, 2).
+            $group = New-Object System.Windows.Media.TransformGroup
+            $group.Children.Add((New-Object System.Windows.Media.TranslateTransform(-5, -2)))
+            $group.Children.Add((New-Object System.Windows.Media.ScaleTransform(0.95, 0.95)))
+            $group.Children.Add((New-Object System.Windows.Media.TranslateTransform(0.8, 0.4)))
+            $context.PushTransform($group)
+            $context.DrawGeometry($bluetoothBrush, $null, $bluetooth)
+            $context.Pop()
 
-        $brush = New-Object System.Drawing.SolidBrush($beaconColor)
-        $graphics.FillEllipse(
-            $brush,
-            [single]($centerX - $dotRadius),
-            [single]($centerY - $dotRadius),
-            [single]($dotRadius * 2),
-            [single]($dotRadius * 2))
-        $brush.Dispose()
-
-        # Dos arcos más gruesos por debajo de 32 px, tres más finos por encima.
-        $radii = if ($small) { @(0.26, 0.46) } else { @(0.24, 0.38, 0.52) }
-        $beaconStroke = if ($small) { $Size * 0.115 } else { $Size * 0.088 }
-
-        $pen = New-Object System.Drawing.Pen($beaconColor, [single]$beaconStroke)
-        $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-        $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-        foreach ($factor in $radii) {
-            $radius = $Size * $factor
-            $graphics.DrawArc(
-                $pen,
-                [single]($centerX - $radius),
-                [single]($centerY - $radius),
-                [single]($radius * 2),
-                [single]($radius * 2),
-                [single](-80),
-                [single](74))
+            $context.DrawGeometry($checkBrush, $null,
+                [System.Windows.Media.Geometry]::Parse($checkPath))
+        }
+        else {
+            # Sin insignia el glifo ocupa el cuadro entero, centrado.
+            $group = New-Object System.Windows.Media.TransformGroup
+            $group.Children.Add((New-Object System.Windows.Media.TranslateTransform(-5, -2)))
+            $group.Children.Add((New-Object System.Windows.Media.ScaleTransform(1.05, 1.05)))
+            $group.Children.Add((New-Object System.Windows.Media.TranslateTransform(5.3, 1)))
+            $context.PushTransform($group)
+            $context.DrawGeometry($bluetoothBrush, $null, $bluetooth)
+            $context.Pop()
         }
 
-        $pen.Dispose()
-
-        # Distintivo de conformidad, abajo a la derecha: la prioridad quedó resuelta.
-        # Por debajo de 24 px no se dibuja: el tic blanco dentro del círculo se emborrona
-        # y ensucia el faro, así que el icono se simplifica en vez de empeorar.
-        if ($Size -ge 24)
-        {
-        $badgeRadius = $Size * 0.26
-        $badgeX = $Size * 0.72
-        $badgeY = $Size * 0.72
-
-        $badgeBrush = New-Object System.Drawing.SolidBrush($checkColor)
-        $graphics.FillEllipse(
-            $badgeBrush,
-            [single]($badgeX - $badgeRadius),
-            [single]($badgeY - $badgeRadius),
-            [single]($badgeRadius * 2),
-            [single]($badgeRadius * 2))
-        $badgeBrush.Dispose()
-
-        $checkPen = New-Object System.Drawing.Pen([System.Drawing.Color]::White, [single]($Size * 0.075))
-        $checkPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-        $checkPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-        $checkPen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-        $graphics.DrawLines($checkPen, [System.Drawing.PointF[]]@(
-            (New-Object System.Drawing.PointF([single]($badgeX - $badgeRadius * 0.48), [single]$badgeY)),
-            (New-Object System.Drawing.PointF([single]($badgeX - $badgeRadius * 0.10), [single]($badgeY + $badgeRadius * 0.38))),
-            (New-Object System.Drawing.PointF([single]($badgeX + $badgeRadius * 0.50), [single]($badgeY - $badgeRadius * 0.42)))))
-        $checkPen.Dispose()
-        }
+        $context.Pop()
     }
     finally {
-        $graphics.Dispose()
+        $context.Close()
     }
 
-    $stream = New-Object System.IO.MemoryStream
-    $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
-    $bitmap.Dispose()
+    $bitmap = New-Object System.Windows.Media.Imaging.RenderTargetBitmap(
+        $Size, $Size, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
+    $bitmap.Render($visual)
 
-    # Unary comma: without it PowerShell unrolls the byte array into the pipeline and the
-    # caller gets an Object[] of bytes, which BinaryWriter.Write has no overload for.
+    $encoder = New-Object System.Windows.Media.Imaging.PngBitmapEncoder
+    $encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
+    $stream = New-Object System.IO.MemoryStream
+    $encoder.Save($stream)
+
+    # Coma unaria: sin ella PowerShell desenrolla el arreglo de bytes en la tubería y
+    # quien llama recibe un Object[], para el que BinaryWriter.Write no tiene sobrecarga.
     return ,$stream.ToArray()
 }
 
@@ -136,15 +126,15 @@ try {
     $writer.Write([uint16]1)
     $writer.Write([uint16]$images.Count)
 
-    # ICONDIRENTRY, 16 bytes each; the payloads follow the whole directory.
+    # ICONDIRENTRY, 16 bytes cada una; las cargas van después de todo el directorio.
     $offset = 6 + (16 * $images.Count)
     foreach ($image in $images) {
-        $writer.Write([byte]($image.Size % 256))   # 256 is stored as 0
+        $writer.Write([byte]($image.Size % 256))   # 256 se guarda como 0
         $writer.Write([byte]($image.Size % 256))
-        $writer.Write([byte]0)                     # palette entries
-        $writer.Write([byte]0)                     # reserved
-        $writer.Write([uint16]1)                   # planes
-        $writer.Write([uint16]32)                  # bits per pixel
+        $writer.Write([byte]0)                     # entradas de paleta
+        $writer.Write([byte]0)                     # reservado
+        $writer.Write([uint16]1)                   # planos
+        $writer.Write([uint16]32)                  # bits por píxel
         $writer.Write([uint32]$image.Bytes.Length)
         $writer.Write([uint32]$offset)
         $offset += $image.Bytes.Length
@@ -161,3 +151,10 @@ finally {
 
 $sizeList = ($Sizes | ForEach-Object { "${_}px" }) -join ', '
 Write-Host "Icono escrito en $OutputPath ($sizeList)."
+
+# La barra de título de la ventana muestra el icono desde un PNG y no desde el ICO: con
+# ExtendsContentIntoTitleBar el marco no dibuja el suyo, y un PNG evita depender de que el
+# decodificador de imágenes de XAML elija bien el fotograma de un ICO.
+$pngPath = [System.IO.Path]::ChangeExtension($OutputPath, '.png')
+[System.IO.File]::WriteAllBytes($pngPath, (New-MarkPng 32))
+Write-Host "PNG de 32px escrito en $pngPath."
