@@ -23,4 +23,25 @@
   <ItemGroup>
     <ProjectReference Include="..\RightBTRadio.Core\RightBTRadio.Core.csproj" />
   </ItemGroup>
+
+  <!--
+    Tomado de RightKeyboard.WinUI. `dotnet publish` no conserva estos recursos generados
+    para una aplicación WinUI no empaquetada. Sin ellos XamlControlsResources no resuelve
+    el tema y la ventana se cierra con 0xC000027B, aunque la carpeta de compilación sí
+    funcione. Comprobado en este repositorio antes de agregar el destino.
+  -->
+  <Target Name="CopyWinUiGeneratedResourcesToPublish" AfterTargets="Publish">
+    <PropertyGroup>
+      <WinUiAppXbf>$(TargetDir)App.xbf</WinUiAppXbf>
+      <WinUiAppPri>$(TargetDir)$(AssemblyName).pri</WinUiAppPri>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(WinUiAppXbf)')"
+           Text="No se encontró el recurso WinUI generado: $(WinUiAppXbf)" />
+    <Error Condition="!Exists('$(WinUiAppPri)')"
+           Text="No se encontró el índice de recursos WinUI generado: $(WinUiAppPri)" />
+    <Copy SourceFiles="$(WinUiAppXbf);$(WinUiAppPri)"
+          DestinationFolder="$(PublishDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
