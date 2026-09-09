@@ -15,6 +15,8 @@ internal static class BluetoothRadios
     private const uint SpdrpDeviceDesc = 0x00000000;
     private const uint SpdrpHardwareId = 0x00000001;
     private const uint SpdrpFriendlyName = 0x0000000C;
+    private const uint SpdrpRemovalPolicy = 0x0000001F;
+    private const uint ExpectNoRemoval = 1;
     private const uint DnHasProblem = 0x00000400;
     private static readonly nint InvalidHandleValue = new(-1);
 
@@ -67,7 +69,8 @@ internal static class BluetoothRadios
                     hardwareIds[0],
                     instanceId,
                     name,
-                    ReadProblem(deviceInfo.DeviceInstance)));
+                    ReadProblem(deviceInfo.DeviceInstance),
+                    ReadRegistryDword(deviceSet, ref deviceInfo, SpdrpRemovalPolicy) != ExpectNoRemoval));
 
                 deviceInfo = new DeviceInfoData { Size = (uint)Marshal.SizeOf<DeviceInfoData>() };
             }
@@ -93,6 +96,26 @@ internal static class BluetoothRadios
         }
 
         return (status & DnHasProblem) == 0 ? 0 : problem;
+    }
+
+    /// <summary>
+    /// Lee una propiedad numérica del registro del dispositivo. Devuelve 0 si no está;
+    /// para <c>SPDRP_REMOVAL_POLICY</c> eso significa «sin política declarada», que se
+    /// trata como desconectable, la suposición menos comprometida.
+    /// </summary>
+    private static uint ReadRegistryDword(nint deviceSet, ref DeviceInfoData deviceInfo, uint property)
+    {
+        byte[] buffer = new byte[sizeof(uint)];
+        return SetupDiGetDeviceRegistryPropertyW(
+            deviceSet,
+            ref deviceInfo,
+            property,
+            out _,
+            buffer,
+            (uint)buffer.Length,
+            out _)
+            ? BitConverter.ToUInt32(buffer)
+            : 0;
     }
 
     private static string? ReadInstanceId(nint deviceSet, ref DeviceInfoData deviceInfo)

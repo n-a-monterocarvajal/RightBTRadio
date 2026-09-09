@@ -37,15 +37,10 @@ Por eso `--apply` termina con ese ciclo cuando el ganador quedó con un problema
 Queda pendiente comprobar si ese ciclo es la única vía. El código lo anota con un
 comentario `ponytail:` que enumera las alternativas sin probar.
 
-## Pendientes anotados en el código
+## Interno contra externo
 
-Los comentarios `ponytail:` marcan las simplificaciones deliberadas y lo que queda por
-decidir. Dos importan más que el resto.
-
-**Un factor de permanencia en el modelo.** Hoy la prioridad es lo único que decide, y eso
-supone que los dos radios aparecen a la vez. En la práctica hay uno habilitado y otro que
-se conecta sobre la marcha, y quien tiene dos radios internos ya deshabilitó el que no
-quiere. Windows distingue los dos casos sin ambigüedad; comprobado sobre hardware real:
+Windows distingue un radio integrado de uno desconectable sin ambigüedad. Medido sobre
+hardware real:
 
 | | Radio externo | Radio interno |
 |---|---|---|
@@ -54,11 +49,25 @@ quiere. Windows distingue los dos casos sin ambigüedad; comprobado sobre hardwa
 | `ContainerId` | propio | `{00000000-0000-0000-FFFF-FFFFFFFFFFFF}` |
 | `EnumeratorName` | USB | USB |
 
-El nombre del enumerador no sirve para distinguirlos. Queda por decidir qué hace ese
-factor con la prioridad y si el usuario puede sobreescribir lo que detecta Windows.
+El nombre del enumerador no sirve para distinguirlos; la política de extracción sí, y es
+la que lee `BluetoothRadios`.
 
-**Si el ciclo de deshabilitar y habilitar es la única forma de refrescar el nodo**, que se
-describe arriba.
+**Ese dato no interviene en la prioridad, y no es un descuido.** La lista del grupo es un
+orden total; una clasificación binaria solo puede repetir lo que la lista ya dice o
+contradecirla. Con un interno y un dongle, la presencia del dongle basta, porque un dongle
+desenchufado no se enumera. Con dos internos o dos dongles, el factor no distingue nada.
+Se muestra en la ventana, en la columna «Tipo», y ahí termina.
+
+Lo que sí usa el estado del sistema es el orden inicial: al agregar un radio al grupo,
+uno habilitado entra por encima de los que estén deshabilitados. Un radio que el usuario
+ya había deshabilitado por su cuenta es una declaración de preferencia. Solo decide el
+orden inicial; después manda lo que el usuario ordene a mano.
+
+## Pendientes anotados en el código
+
+Los comentarios `ponytail:` marcan las simplificaciones deliberadas y lo que queda por
+decidir. El que más importa es **si el ciclo de deshabilitar y habilitar es la única forma
+de refrescar el nodo**, que se describe arriba.
 
 ## Elevación
 

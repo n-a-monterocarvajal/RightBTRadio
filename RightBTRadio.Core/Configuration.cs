@@ -8,19 +8,12 @@ namespace RightBTRadio;
 /// posición dentro de <see cref="PriorityGroup.Devices"/>, así que reordenar la lista
 /// y renumerar no pueden divergir. La primera posición es la máxima prioridad.
 /// </summary>
-// ponytail: falta un factor de permanencia en el modelo. Hoy la prioridad es lo único
-// que decide, y eso supone que los dos radios aparecen a la vez; en la práctica hay uno
-// habilitado y otro que se conecta sobre la marcha, y quien tiene dos radios internos ya
-// deshabilitó el que no quiere. No hace falta que lo clasifique el usuario: Windows lo
-// expone, y se comprobó sobre hardware real que separa los dos casos sin ambigüedad.
-// El radio externo informa RemovalPolicy 3 (CM_REMOVAL_POLICY_EXPECT_SURPRISE_REMOVAL),
-// InLocalMachineContainer falso y ContainerId propio; el interno informa RemovalPolicy 1
-// (CM_REMOVAL_POLICY_EXPECT_NO_REMOVAL), InLocalMachineContainer verdadero y el
-// ContainerId de la máquina, {00000000-0000-0000-FFFF-FFFFFFFFFFFF}. El nombre del
-// enumerador no sirve: los dos son USB. SPDRP_REMOVAL_POLICY se lee con la misma llamada
-// que ya usa BluetoothRadios, y el ContainerId con la clave que usa DeviceIdentityResolver
-// de RightKeyboard. Queda por decidir qué hace ese factor con la prioridad, y si el
-// usuario puede sobreescribir lo que detecta Windows.
+// No hay un campo de permanencia, interno contra externo, y es deliberado. La lista del
+// grupo es un orden total; una clasificación binaria solo puede repetir lo que la lista
+// ya dice o contradecirla. Con un interno y un dongle, la presencia del dongle basta,
+// porque un dongle desenchufado no se enumera. Con dos internos o dos dongles, el factor
+// no distingue nada y decide la lista igual. Windows sí lo expone —BluetoothRadio.Removable
+// sale de SPDRP_REMOVAL_POLICY— pero se usa solo para mostrarlo en la ventana.
 internal sealed class ConfiguredDevice
 {
     public required string HardwareId { get; set; }

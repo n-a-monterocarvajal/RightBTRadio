@@ -8,17 +8,51 @@ using Microsoft.UI.Xaml.Media;
 namespace RightBTRadio.WinUI;
 
 /// <summary>Una fila de cualquiera de las dos listas.</summary>
-public sealed class RadioRow(string position, string primary, string secondary, string state, string hardwareId)
+public sealed class RadioRow
 {
-    public string Position { get; } = position;
+    // Mismos colores que el indicador de conexión de RightKeyboard.
+    private static readonly SolidColorBrush ConnectedBrush =
+        new(Windows.UI.Color.FromArgb(255, 16, 124, 65));
 
-    public string Primary { get; } = primary;
+    private static readonly SolidColorBrush DisconnectedBrush =
+        new(Windows.UI.Color.FromArgb(255, 117, 117, 117));
 
-    public string Secondary { get; } = secondary;
+    public RadioRow(
+        string position,
+        string primary,
+        string secondary,
+        string kind,
+        string state,
+        bool connected,
+        string hardwareId)
+    {
+        Position = position;
+        Primary = primary;
+        Secondary = secondary;
+        Kind = kind;
+        State = state;
+        Connected = connected;
+        HardwareId = hardwareId;
+    }
 
-    public string State { get; } = state;
+    public string Position { get; }
 
-    public string HardwareId { get; } = hardwareId;
+    public string Primary { get; }
+
+    public string Secondary { get; }
+
+    /// <summary>«Interno» o «Externo». Informativo: no interviene en la prioridad.</summary>
+    public string Kind { get; }
+
+    public string State { get; }
+
+    public bool Connected { get; }
+
+    public string HardwareId { get; }
+
+    public string ConnectionText => Connected ? "Conectado" : "Desconectado";
+
+    public SolidColorBrush ConnectionBrush => Connected ? ConnectedBrush : DisconnectedBrush;
 }
 
 public sealed partial class SettingsWindow : Window
@@ -105,16 +139,32 @@ public sealed partial class SettingsWindow : Window
             radios = BluetoothRadios.Enumerate();
             List<ConfiguredDevice> configured = configuration.DefaultGroup.Devices;
 
+            // La lista muestra los radios presentes y, además, los que están en el grupo
+            // pero no se detectan ahora. Sin esos últimos el indicador de conexión no
+            // tendría nada que informar: todo lo enumerado está conectado por definición.
             devices.Clear();
             foreach (BluetoothRadio radio in radios)
             {
-                bool inGroup = configured.Any(device => Matches(device, radio.HardwareId));
                 devices.Add(new RadioRow(
                     string.Empty,
                     radio.Name,
                     radio.HardwareId,
-                    inGroup ? State(radio) : "Sin asignar",
+                    Kind(radio),
+                    State(radio),
+                    connected: true,
                     radio.HardwareId));
+            }
+
+            foreach (ConfiguredDevice device in configured.Where(device => FindRadio(device.HardwareId) is null))
+            {
+                devices.Add(new RadioRow(
+                    string.Empty,
+                    device.Alias.Length > 0 ? device.Alias : device.HardwareId,
+                    device.HardwareId,
+                    "—",
+                    "—",
+                    connected: false,
+                    device.HardwareId));
             }
 
             priority.Clear();
@@ -126,7 +176,9 @@ public sealed partial class SettingsWindow : Window
                     (index + 1).ToString(),
                     device.Alias.Length > 0 ? device.Alias : device.HardwareId,
                     radio?.Name ?? device.HardwareId,
-                    radio is null ? "Ausente" : State(radio),
+                    radio is null ? "—" : Kind(radio),
+                    radio is null ? "—" : State(radio),
+                    connected: radio is not null,
                     device.HardwareId));
             }
 
@@ -163,6 +215,8 @@ public sealed partial class SettingsWindow : Window
         { HasProblem: true } => $"Con problema {radio.Problem}",
         _ => "Habilitado"
     };
+
+    private static string Kind(BluetoothRadio radio) => radio.Removable ? "Externo" : "Interno";
 
     private static bool Matches(ConfiguredDevice device, string hardwareId) =>
         string.Equals(device.HardwareId, hardwareId, StringComparison.OrdinalIgnoreCase);
@@ -231,12 +285,30 @@ public sealed partial class SettingsWindow : Window
         if (device is null)
         {
             device = new ConfiguredDevice { HardwareId = hardwareId };
-            group.Add(device);
+            group.Insert(InsertionIndex(group, hardwareId), device);
         }
 
         device.Alias = AliasTextBox.Text.Trim();
         device.InstanceId = FindRadio(hardwareId)?.InstanceId ?? device.InstanceId;
         Save(hardwareId);
+    }
+
+    /// <summary>
+    /// Dónde entra un radio que se agrega al grupo. Un radio que el usuario ya había
+    /// deshabilitado por su cuenta es una declaración de preferencia, así que lo que
+    /// está habilitado entra por encima de lo deshabilitado. Solo decide el orden
+    /// inicial: después manda lo que el usuario ordene a mano.
+    /// </summary>
+    private int InsertionIndex(List<ConfiguredDevice> group, string hardwareId)
+    {
+        if (FindRadio(hardwareId) is not { Enabled: true })
+        {
+            return group.Count;
+        }
+
+        int firstDisabled = group.FindIndex(
+            candidate => FindRadio(candidate.HardwareId) is { Enabled: false });
+        return firstDisabled >= 0 ? firstDisabled : group.Count;
     }
 
     private void OnRemoveClick(object sender, RoutedEventArgs args)

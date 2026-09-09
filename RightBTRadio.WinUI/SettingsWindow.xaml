@@ -32,9 +32,9 @@
                         TextWrapping="Wrap" />
                 </StackPanel>
 
-                <!--  Radios detectados  -->
+                <!--  Radios Bluetooth  -->
                 <StackPanel Spacing="8">
-                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Radios detectados" />
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Radios Bluetooth" />
                     <TextBlock
                         x:Name="DevicesDescription"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -56,17 +56,27 @@
                                 <DataTemplate>
                                     <Grid Padding="12,8" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="2*" />
                                             <ColumnDefinition Width="3*" />
-                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="0.9*" />
+                                            <ColumnDefinition Width="1.3*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Nombre" />
+                                        <Border Width="6" />
                                         <TextBlock
                                             Grid.Column="1"
                                             Style="{StaticResource CaptionTextBlockStyle}"
-                                            Text="Hardware ID" />
+                                            Text="Nombre" />
                                         <TextBlock
                                             Grid.Column="2"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Hardware ID" />
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Tipo" />
+                                        <TextBlock
+                                            Grid.Column="4"
                                             Style="{StaticResource CaptionTextBlockStyle}"
                                             Text="Estado" />
                                     </Grid>
@@ -76,18 +86,35 @@
                                 <DataTemplate x:DataType="local:RadioRow">
                                     <Grid Padding="0,6" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="2*" />
                                             <ColumnDefinition Width="3*" />
-                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="0.9*" />
+                                            <ColumnDefinition Width="1.3*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{x:Bind Primary}" TextTrimming="CharacterEllipsis" />
+                                        <Ellipse
+                                            Width="6"
+                                            Height="6"
+                                            VerticalAlignment="Center"
+                                            AutomationProperties.Name="{x:Bind ConnectionText}"
+                                            Fill="{x:Bind ConnectionBrush}"
+                                            ToolTipService.ToolTip="{x:Bind ConnectionText}" />
                                         <TextBlock
                                             Grid.Column="1"
+                                            Text="{x:Bind Primary}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="2"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Text="{x:Bind Secondary}"
                                             TextTrimming="CharacterEllipsis" />
                                         <TextBlock
-                                            Grid.Column="2"
+                                            Grid.Column="3"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind Kind}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="4"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Text="{x:Bind State}"
                                             TextTrimming="CharacterEllipsis" />
@@ -143,30 +170,70 @@
                             Padding="4"
                             SelectionChanged="OnPrioritySelectionChanged"
                             SelectionMode="Single">
+                            <ListView.HeaderTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="12,8" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="2.4*" />
+                                            <ColumnDefinition Width="1.3*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="6" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Width="28"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="#" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Alias" />
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Nombre" />
+                                        <TextBlock
+                                            Grid.Column="4"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Estado" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.HeaderTemplate>
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="local:RadioRow">
                                     <Grid Padding="0,6" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="2*" />
-                                            <ColumnDefinition Width="3*" />
-                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="2.4*" />
+                                            <ColumnDefinition Width="1.3*" />
                                         </Grid.ColumnDefinitions>
+                                        <Ellipse
+                                            Width="6"
+                                            Height="6"
+                                            VerticalAlignment="Center"
+                                            AutomationProperties.Name="{x:Bind ConnectionText}"
+                                            Fill="{x:Bind ConnectionBrush}"
+                                            ToolTipService.ToolTip="{x:Bind ConnectionText}" />
                                         <TextBlock
+                                            Grid.Column="1"
                                             Width="28"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Text="{x:Bind Position}" />
                                         <TextBlock
-                                            Grid.Column="1"
+                                            Grid.Column="2"
                                             Text="{x:Bind Primary}"
                                             TextTrimming="CharacterEllipsis" />
                                         <TextBlock
-                                            Grid.Column="2"
+                                            Grid.Column="3"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Text="{x:Bind Secondary}"
                                             TextTrimming="CharacterEllipsis" />
                                         <TextBlock
-                                            Grid.Column="3"
+                                            Grid.Column="4"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Text="{x:Bind State}"
                                             TextTrimming="CharacterEllipsis" />

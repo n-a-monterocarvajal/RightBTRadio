@@ -13,7 +13,7 @@ public sealed class PriorityResolverTests
     };
 
     private static BluetoothRadio Radio(string hardwareId, bool enabled = true) =>
-        new(hardwareId, $@"INSTANCE\{hardwareId}", hardwareId, enabled ? 0u : BluetoothRadio.ProblemDisabled);
+        new(hardwareId, $@"INSTANCE\{hardwareId}", hardwareId, enabled ? 0u : BluetoothRadio.ProblemDisabled, Removable: true);
 
     [Test]
     public void DeshabilitaLosDeMenorPrioridadYDejaElPrimero()
@@ -93,7 +93,7 @@ public sealed class PriorityResolverTests
         // Con dos radios presentes Windows deja al segundo en CM_PROB_FAILED_INSTALL.
         // No es lo mismo que estar deshabilitado, y no debe cambiar la prioridad: el
         // problema se resuelve reenumerando el nodo una vez que el otro se deshabilita.
-        BluetoothRadio conProblema = new("EXTERNO", @"INSTANCE\EXTERNO", "Externo", Problem: 31);
+        BluetoothRadio conProblema = new("EXTERNO", @"INSTANCE\EXTERNO", "Externo", Problem: 31, Removable: true);
 
         ResolutionPlan plan = PriorityResolver.Resolve(
             Group("EXTERNO", "INTERNO"),
@@ -109,8 +109,8 @@ public sealed class PriorityResolverTests
     [Test]
     public void ConDosRadiosIdenticosElegirUnoDeFormaDeterminista()
     {
-        BluetoothRadio primero = new("IGUAL", @"INSTANCE\A", "A", Problem: 0);
-        BluetoothRadio segundo = new("IGUAL", @"INSTANCE\B", "B", Problem: 0);
+        BluetoothRadio primero = new("IGUAL", @"INSTANCE\A", "A", Problem: 0, Removable: true);
+        BluetoothRadio segundo = new("IGUAL", @"INSTANCE\B", "B", Problem: 0, Removable: true);
 
         ResolutionPlan directo = PriorityResolver.Resolve(Group("IGUAL"), [primero, segundo]);
         ResolutionPlan inverso = PriorityResolver.Resolve(Group("IGUAL"), [segundo, primero]);

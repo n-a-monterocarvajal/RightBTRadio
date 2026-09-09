@@ -56,6 +56,16 @@ function Write-Section([string]$Text) {
     Write-Host $Text -ForegroundColor Cyan
 }
 
+function Normalize([string]$Text) {
+    # UIA returns wrapped text with the line breaks the layout introduced, so every run
+    # of whitespace collapses to one space before comparing.
+    return ($Text -replace '\s+', ' ').Trim()
+}
+
+function Assert-Text([string]$Label, [string]$Expected, [string]$Actual) {
+    Assert-Equal $Label (Normalize $Expected) (Normalize $Actual)
+}
+
 function Assert-Equal([string]$Label, $Expected, $Actual) {
     $script:checks++
     if ($Expected -eq $Actual) {
@@ -249,13 +259,13 @@ Write-Section 'Texts'
 Assert-Equal 'window title' $contract.WindowTitle $window.title
 
 $subtitle = Invoke-Winapp @('ui', 'get-value', $contract.SubtitleId, '-w', $handle)
-Assert-Equal 'subtitle' $contract.Subtitle $subtitle.Trim()
+Assert-Text 'subtitle' $contract.Subtitle $subtitle
 
 $devicesDescription = Invoke-Winapp @('ui', 'get-value', $contract.DevicesDescriptionId, '-w', $handle)
-Assert-Equal 'devices description' $contract.DevicesDescription $devicesDescription.Trim()
+Assert-Text 'devices description' $contract.DevicesDescription $devicesDescription
 
 $priorityDescription = Invoke-Winapp @('ui', 'get-value', $contract.PriorityDescriptionId, '-w', $handle)
-Assert-Equal 'priority description' $contract.PriorityDescription $priorityDescription.Trim()
+Assert-Text 'priority description' $contract.PriorityDescription $priorityDescription
 
 Write-Section 'Automation identifiers'
 foreach ($id in @(

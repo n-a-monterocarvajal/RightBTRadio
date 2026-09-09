@@ -16,11 +16,18 @@ namespace RightBTRadio;
 /// (<c>CM_PROB_FAILED_INSTALL</c>), que es como se manifiesta el conflicto entre dos
 /// radios Bluetooth presentes a la vez.
 /// </param>
+/// <param name="Removable">
+/// Verdadero si Windows espera que el radio pueda desconectarse. Sale de
+/// <c>SPDRP_REMOVAL_POLICY</c>: 1 es <c>CM_REMOVAL_POLICY_EXPECT_NO_REMOVAL</c>, o sea un
+/// radio integrado en la máquina. Es informativo: la prioridad la decide el orden del
+/// grupo, no esta propiedad.
+/// </param>
 internal sealed record BluetoothRadio(
     string HardwareId,
     string InstanceId,
     string Name,
-    uint Problem)
+    uint Problem,
+    bool Removable)
 {
     public const uint ProblemDisabled = 22;
 
