@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -23,6 +24,7 @@ public sealed class RadioRow
         string secondary,
         string kind,
         string state,
+        string description,
         bool connected,
         string hardwareId)
     {
@@ -31,6 +33,7 @@ public sealed class RadioRow
         Secondary = secondary;
         Kind = kind;
         State = state;
+        Description = description;
         Connected = connected;
         HardwareId = hardwareId;
     }
@@ -45,6 +48,9 @@ public sealed class RadioRow
     public string Kind { get; }
 
     public string State { get; }
+
+    /// <summary>Estado del dispositivo en la forma en que lo describe el Administrador de dispositivos.</summary>
+    public string Description { get; }
 
     public bool Connected { get; }
 
@@ -61,6 +67,7 @@ public sealed partial class SettingsWindow : Window
     private readonly ObservableCollection<RadioRow> priority = [];
     private Configuration configuration = new();
     private IReadOnlyList<BluetoothRadio> radios = [];
+    private string lastSignature = string.Empty;
     private bool loading;
 
     public SettingsWindow()
@@ -83,7 +90,48 @@ public sealed partial class SettingsWindow : Window
 
         ApplyAutomationIds();
         Reload(selectedHardwareId: null);
+        StartWatching();
     }
+
+    /// <summary>
+    /// Mantiene la lista al día mientras la ventana está abierta. El residente sí escucha
+    /// eventos; esta ventana sondea porque vive poco y en primer plano, y engancharse a
+    /// <c>WM_DEVICECHANGE</c> desde WinUI exige subclasificar el HWND, más maquinaria de
+    /// la que el caso justifica. Solo recarga cuando algo cambió de verdad, así que no
+    /// parpadea ni pierde la selección.
+    /// </summary>
+    private void StartWatching()
+    {
+        DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromSeconds(2);
+        timer.Tick += (_, _) => RefreshIfChanged();
+        timer.Start();
+        Closed += (_, _) => timer.Stop();
+    }
+
+    private void RefreshIfChanged()
+    {
+        string current = Signature(BluetoothRadios.Enumerate());
+        if (current == lastSignature)
+        {
+            return;
+        }
+
+        // No pisar un alias a medio escribir.
+        string? selected = SelectedDeviceHardwareId;
+        string draft = AliasTextBox.Text;
+        bool editing = AliasTextBox.FocusState != FocusState.Unfocused;
+
+        Reload(selected);
+
+        if (editing)
+        {
+            AliasTextBox.Text = draft;
+        }
+    }
+
+    private static string Signature(IReadOnlyList<BluetoothRadio> radios) =>
+        string.Join('|', radios.Select(radio => $"{radio.HardwareId}:{radio.Problem}"));
 
     /// <remarks>
     /// Los identificadores se fijan en código, no en XAML, porque el contrato es
@@ -137,6 +185,7 @@ public sealed partial class SettingsWindow : Window
         {
             configuration = LoadConfiguration();
             radios = BluetoothRadios.Enumerate();
+            lastSignature = Signature(radios);
             List<ConfiguredDevice> configured = configuration.DefaultGroup.Devices;
 
             // La lista muestra los radios presentes y, además, los que están en el grupo
@@ -151,6 +200,7 @@ public sealed partial class SettingsWindow : Window
                     radio.HardwareId,
                     Kind(radio),
                     State(radio),
+                    DeviceStatusText.Describe(radio.Problem),
                     connected: true,
                     radio.HardwareId));
             }
@@ -163,6 +213,7 @@ public sealed partial class SettingsWindow : Window
                     device.HardwareId,
                     "—",
                     "—",
+                    "Este radio está en el grupo pero no se detecta ahora.",
                     connected: false,
                     device.HardwareId));
             }
@@ -178,6 +229,9 @@ public sealed partial class SettingsWindow : Window
                     radio?.Name ?? device.HardwareId,
                     radio is null ? "—" : Kind(radio),
                     radio is null ? "—" : State(radio),
+                    radio is null
+                        ? "Este radio está en el grupo pero no se detecta ahora."
+                        : DeviceStatusText.Describe(radio.Problem),
                     connected: radio is not null,
                     device.HardwareId));
             }

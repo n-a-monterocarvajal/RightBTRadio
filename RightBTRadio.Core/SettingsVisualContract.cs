@@ -24,7 +24,7 @@ internal static class SettingsVisualContract
     public const string PriorityDescription =
         "El primero de la lista es el que queda habilitado; el resto se deshabilita.";
 
-    public const int MinimumWidth = 900;
+    public const int MinimumWidth = 1120;
 
     public const int MinimumHeight = 720;
 

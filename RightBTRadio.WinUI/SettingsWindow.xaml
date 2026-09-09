@@ -21,7 +21,7 @@
         </Grid>
 
         <ScrollViewer Grid.Row="1" Padding="32,8,32,32">
-            <StackPanel MaxWidth="1040" Spacing="28">
+            <StackPanel MaxWidth="1240" Spacing="28">
 
                 <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="RightBTRadio" />
@@ -57,10 +57,11 @@
                                     <Grid Padding="12,8" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="2*" />
-                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="1.7*" />
+                                            <ColumnDefinition Width="2.3*" />
+                                            <ColumnDefinition Width="0.7*" />
                                             <ColumnDefinition Width="0.9*" />
-                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="2.2*" />
                                         </Grid.ColumnDefinitions>
                                         <Border Width="6" />
                                         <TextBlock
@@ -79,6 +80,10 @@
                                             Grid.Column="4"
                                             Style="{StaticResource CaptionTextBlockStyle}"
                                             Text="Estado" />
+                                        <TextBlock
+                                            Grid.Column="5"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Estado del dispositivo" />
                                     </Grid>
                                 </DataTemplate>
                             </ListView.HeaderTemplate>
@@ -87,10 +92,11 @@
                                     <Grid Padding="0,6" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="2*" />
-                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="1.7*" />
+                                            <ColumnDefinition Width="2.3*" />
+                                            <ColumnDefinition Width="0.7*" />
                                             <ColumnDefinition Width="0.9*" />
-                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="2.2*" />
                                         </Grid.ColumnDefinitions>
                                         <Ellipse
                                             Width="6"
@@ -102,12 +108,14 @@
                                         <TextBlock
                                             Grid.Column="1"
                                             Text="{x:Bind Primary}"
-                                            TextTrimming="CharacterEllipsis" />
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTipService.ToolTip="{x:Bind Primary}" />
                                         <TextBlock
                                             Grid.Column="2"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Text="{x:Bind Secondary}"
-                                            TextTrimming="CharacterEllipsis" />
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTipService.ToolTip="{x:Bind Secondary}" />
                                         <TextBlock
                                             Grid.Column="3"
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -118,6 +126,12 @@
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Text="{x:Bind State}"
                                             TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="5"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind Description}"
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTipService.ToolTip="{x:Bind Description}" />
                                     </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
@@ -176,9 +190,10 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="1.6*" />
                                             <ColumnDefinition Width="2*" />
-                                            <ColumnDefinition Width="2.4*" />
-                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="0.9*" />
+                                            <ColumnDefinition Width="2.2*" />
                                         </Grid.ColumnDefinitions>
                                         <Border Width="6" />
                                         <TextBlock
@@ -198,6 +213,10 @@
                                             Grid.Column="4"
                                             Style="{StaticResource CaptionTextBlockStyle}"
                                             Text="Estado" />
+                                        <TextBlock
+                                            Grid.Column="5"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Text="Estado del dispositivo" />
                                     </Grid>
                                 </DataTemplate>
                             </ListView.HeaderTemplate>
@@ -207,9 +226,10 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="1.6*" />
                                             <ColumnDefinition Width="2*" />
-                                            <ColumnDefinition Width="2.4*" />
-                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="0.9*" />
+                                            <ColumnDefinition Width="2.2*" />
                                         </Grid.ColumnDefinitions>
                                         <Ellipse
                                             Width="6"
@@ -237,6 +257,12 @@
                                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                             Text="{x:Bind State}"
                                             TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="5"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Bind Description}"
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTipService.ToolTip="{x:Bind Description}" />
                                     </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
