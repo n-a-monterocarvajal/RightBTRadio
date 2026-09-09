@@ -122,23 +122,13 @@ function Get-Contract {
 }
 
 function Get-SettingsExecutable {
-    <#
-        Two output paths exist because a solution build carries Platform=x64 and a
-        project build does not. Taking the newest of the two is what keeps the harness
-        from measuring a stale binary, which is exactly how it first produced a green
-        run against an old contract.
-    #>
-    $candidates = @(
-        "RightBTRadio.WinUI/bin/$Configuration/net10.0-windows10.0.19041.0/win-x64/RightBTRadio.WinUI.exe",
-        "RightBTRadio.WinUI/bin/x64/$Configuration/net10.0-windows10.0.19041.0/RightBTRadio.WinUI.exe",
+    $path = Join-Path $repositoryRoot `
         "RightBTRadio.WinUI/bin/x64/$Configuration/net10.0-windows10.0.19041.0/win-x64/RightBTRadio.WinUI.exe"
-    ) | ForEach-Object { Join-Path $repositoryRoot $_ } | Where-Object { Test-Path $_ }
-
-    if (-not $candidates) {
+    if (-not (Test-Path $path)) {
         throw "Settings window not built for $Configuration."
     }
 
-    return (Get-Item $candidates | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+    return (Resolve-Path $path).Path
 }
 
 function Invoke-Winapp {
@@ -221,7 +211,9 @@ Write-Section "Contract read from RightBTRadio.Core/SettingsVisualContract.cs ($
 $process = $null
 if (-not $Attach) {
     Write-Section "Building RightBTRadio.WinUI ($Configuration)"
-    & dotnet build (Join-Path $repositoryRoot 'RightBTRadio.WinUI/RightBTRadio.WinUI.csproj') `
+    # The solution, never the single project: a project build lands in a different
+    # folder and the harness would measure whichever binary happened to be newer.
+    & dotnet build (Join-Path $repositoryRoot 'RightBTRadio.slnx') `
         -c $Configuration --nologo -v quiet | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Error 'Build failed.'

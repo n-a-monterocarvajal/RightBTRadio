@@ -134,41 +134,6 @@ internal sealed class TrayApplicationContext : ApplicationContext
             ToolTipIcon.Info);
     }
 
-    /// <summary>
-    /// Busca la ventana de ajustes junto al ejecutable de bandeja, que es donde queda
-    /// instalada. La tercera ruta cubre la compilación de desarrollo, donde cada proyecto
-    /// escribe en su propia carpeta y todavía no hay instalador que las junte.
-    /// </summary>
-    private static string? FindSettingsExecutable()
-    {
-        const string name = "RightBTRadio.WinUI.exe";
-        string configuration = Path.GetFileName(Path.GetDirectoryName(
-            AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))) ?? "Debug";
-
-        string[] candidates =
-        [
-            Path.Combine(AppContext.BaseDirectory, name),
-            Path.Combine(AppContext.BaseDirectory, "ui", name),
-            // ponytail: rutas de desarrollo derivadas del árbol de compilación. Son dos
-            // porque una compilación de la solución lleva Platform=x64 y una del proyecto
-            // no. Sobran en cuanto el instalador publique ambos ejecutables juntos.
-            Path.GetFullPath(Path.Combine(
-                AppContext.BaseDirectory,
-                @"..\..\..\..\RightBTRadio.WinUI\bin",
-                configuration,
-                @"net10.0-windows10.0.19041.0\win-x64",
-                name)),
-            Path.GetFullPath(Path.Combine(
-                AppContext.BaseDirectory,
-                @"..\..\..\..\RightBTRadio.WinUI\bin\x64",
-                configuration,
-                "net10.0-windows10.0.19041.0",
-                name))
-        ];
-
-        return candidates.FirstOrDefault(File.Exists);
-    }
-
     private void ShowSettings()
     {
         if (settingsProcess is { HasExited: false })
@@ -176,7 +141,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             return;
         }
 
-        string? executable = FindSettingsExecutable();
+        string? executable = Executables.FindSettings();
         if (executable is null)
         {
             MessageBox.Show(
