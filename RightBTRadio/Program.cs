@@ -6,6 +6,13 @@ internal static class Program
 {
     internal const string InstanceMutexName = @"Local\RightBTRadio.SingleInstance";
 
+    /// <summary>
+    /// El instalador y el desinstalador señalan este evento para que el residente se
+    /// cierre solo. Una aplicación de bandeja no tiene ventana que cerrar, así que sin
+    /// esto no hay forma limpia de pedirle que termine.
+    /// </summary>
+    internal const string CloseEventName = @"Local\RightBTRadio.Close";
+
     private const uint AttachParentProcess = 0xFFFFFFFF;
 
     [STAThread]
@@ -23,8 +30,24 @@ internal static class Program
         }
 
         ApplicationConfiguration.Initialize();
+        using EventWaitHandle closeEvent = new(false, EventResetMode.AutoReset, CloseEventName);
         using TrayApplicationContext context = new();
-        Application.Run(context);
+        RegisteredWaitHandle closeRegistration = ThreadPool.RegisterWaitForSingleObject(
+            closeEvent,
+            (_, _) => context.RequestExit(),
+            null,
+            Timeout.Infinite,
+            executeOnlyOnce: true);
+
+        try
+        {
+            Application.Run(context);
+        }
+        finally
+        {
+            closeRegistration.Unregister(null);
+        }
+
         return 0;
     }
 

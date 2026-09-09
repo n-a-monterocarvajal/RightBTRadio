@@ -17,10 +17,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly DeviceChangeWindow deviceWindow;
     private readonly NativeTrayMenu menu;
     private readonly NotifyIcon notifyIcon;
+    private readonly SynchronizationContext uiContext;
     private Process? settingsProcess;
 
     public TrayApplicationContext()
     {
+        uiContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         deviceWindow = new DeviceChangeWindow();
         deviceWindow.DevicesChanged += RequestApply;
         menu = new NativeTrayMenu(deviceWindow.Handle, ShowSettings, RequestEnableAll, ExitThread);
@@ -50,6 +52,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
             ShowSettings();
         }
     }
+
+    /// <summary>
+    /// Cierra el residente desde otro hilo. Lo llama el instalador a través del evento de
+    /// cierre, así que la salida tiene que volver al hilo de la interfaz.
+    /// </summary>
+    public void RequestExit() => uiContext.Post(_ => ExitThread(), null);
 
     private static Configuration LoadConfiguration()
     {

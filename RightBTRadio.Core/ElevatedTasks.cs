@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace RightBTRadio;
 
@@ -18,9 +19,48 @@ internal static class ElevatedTasks
     public const string ApplyTaskName = "RightBTRadio.Apply";
     public const string EnableAllTaskName = "RightBTRadio.EnableAll";
 
-    public static bool AreRegistered => Exists(ApplyTaskName) && Exists(EnableAllTaskName);
+    /// <summary>
+    /// Verdadero solo si las dos tareas existen y ejecutan el residente actual. No basta
+    /// con que existan: tras instalar, mover o actualizar la aplicación, unas tareas
+    /// viejas seguirían apuntando al ejecutable anterior.
+    /// </summary>
+    public static bool AreRegistered
+    {
+        get
+        {
+            string? tray = Executables.FindTray();
+            return tray is not null && PointsAt(ApplyTaskName, tray) && PointsAt(EnableAllTaskName, tray);
+        }
+    }
 
     public static bool Exists(string taskName) => RunSchtasks(out _, "/Query", "/TN", taskName) == 0;
+
+    /// <summary>Ejecutable que la tarea lanza, o nulo si no está registrada.</summary>
+    internal static string? RegisteredExecutable(string taskName)
+    {
+        if (RunSchtasks(out _, out string xml, "/Query", "/TN", taskName, "/XML") != 0)
+        {
+            return null;
+        }
+
+        return ParseCommand(xml);
+    }
+
+    /// <summary>
+    /// Extrae el ejecutable del XML de una tarea. Se lee del XML y no de <c>/FO LIST</c>
+    /// porque los nombres de campo de schtasks están traducidos y cambian con el idioma
+    /// de Windows; las etiquetas del XML no.
+    /// </summary>
+    internal static string? ParseCommand(string xml)
+    {
+        Match command = Regex.Match(xml, "<Command>(?<path>.*?)</Command>", RegexOptions.Singleline);
+        return command.Success
+            ? Environment.ExpandEnvironmentVariables(command.Groups["path"].Value.Trim())
+            : null;
+    }
+
+    private static bool PointsAt(string taskName, string executable) =>
+        string.Equals(RegisteredExecutable(taskName), executable, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Lanza la tarea y devuelve verdadero si Windows aceptó ejecutarla.</summary>
     public static bool Run(string taskName)
@@ -117,13 +157,20 @@ internal static class ElevatedTasks
 
     private static string Escape(string value) => System.Security.SecurityElement.Escape(value) ?? value;
 
-    private static int RunSchtasks(out string error, params string[] arguments)
+    private static int RunSchtasks(out string error, params string[] arguments) =>
+        RunSchtasks(out error, out _, arguments);
+
+    private static int RunSchtasks(out string error, out string output, params string[] arguments)
     {
         ProcessStartInfo startInfo = new(Path.Combine(Environment.SystemDirectory, "schtasks.exe"))
         {
             CreateNoWindow = true,
             RedirectStandardOutput = true,
-            RedirectStandardError = true
+            RedirectStandardError = true,
+
+            // schtasks /XML escribe UTF-16; leerlo con la página de códigos de consola
+            // dejaría el XML ilegible.
+            StandardOutputEncoding = Encoding.Unicode
         };
 
         foreach (string argument in arguments)
@@ -135,11 +182,12 @@ internal static class ElevatedTasks
         if (process is null)
         {
             error = "no se pudo iniciar schtasks.exe";
+            output = string.Empty;
             return -1;
         }
 
         error = process.StandardError.ReadToEnd().Trim();
-        process.StandardOutput.ReadToEnd();
+        output = process.StandardOutput.ReadToEnd();
         process.WaitForExit();
         return process.ExitCode;
     }
