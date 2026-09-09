@@ -22,7 +22,7 @@ internal static class RadioService
     {
         IReadOnlyList<BluetoothRadio> present = BluetoothRadios.Enumerate();
         ResolutionPlan plan = PriorityResolver.Resolve(configuration.DefaultGroup, present);
-        if (plan.IsEmpty)
+        if (plan.Winner is null)
         {
             return 0;
         }
@@ -43,11 +43,10 @@ internal static class RadioService
             }
         }
 
-        if (changed > 0 && plan.Winner is not null)
-        {
-            RecoverWinner(plan.Winner.HardwareId);
-        }
-
+        // La recuperación no depende de que algo haya cambiado. Cuando el grupo tiene un
+        // solo candidato presente no hay nada que habilitar ni deshabilitar, y ese es
+        // justamente el caso en que el radio que queda puede haber arrancado mal.
+        RecoverWinner(plan.Winner.HardwareId);
         return changed;
     }
 
@@ -92,7 +91,14 @@ internal static class RadioService
             return;
         }
 
+        if (!RecoveryStamp.ShouldAttempt(winner.HardwareId, winner.Problem))
+        {
+            Log.Write($"{winner.Name} sigue con el problema {winner.Problem}; no se reintenta todavía.");
+            return;
+        }
+
         Log.Write($"{winner.Name} quedó con el problema {winner.Problem}; se reinicia su nodo.");
+        RecoveryStamp.Record(winner.HardwareId, winner.Problem);
         if (!DeviceControl.SetEnabled(winner.InstanceId, enabled: false))
         {
             return;
