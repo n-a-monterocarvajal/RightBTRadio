@@ -5,6 +5,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>..\assets\RightBTRadio.ico</ApplicationIcon>
     <AssemblyName>RightBTRadio</AssemblyName>
     <RootNamespace>RightBTRadio</RootNamespace>
     <Version>0.1.0</Version>

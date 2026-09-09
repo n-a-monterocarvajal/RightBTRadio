@@ -15,6 +15,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Version>0.1.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\assets\RightBTRadio.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
@@ -27,8 +28,8 @@
   <!--
     Tomado de RightKeyboard.WinUI. `dotnet publish` no conserva estos recursos generados
     para una aplicación WinUI no empaquetada. Sin ellos XamlControlsResources no resuelve
-    el tema y la ventana se cierra con 0xC000027B, aunque la carpeta de compilación sí
-    funcione. Comprobado en este repositorio antes de agregar el destino.
+    el tema y la ventana publicada se cierra con 0xC000027B, aunque la carpeta de
+    compilación sí funcione. Reproducido en este repositorio antes de agregar el destino.
   -->
   <Target Name="CopyWinUiGeneratedResourcesToPublish" AfterTargets="Publish">
     <PropertyGroup>

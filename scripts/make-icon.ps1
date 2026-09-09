@@ -33,7 +33,9 @@ if (-not $OutputPath) {
     $OutputPath = Join-Path $repositoryRoot 'assets/RightBTRadio.ico'
 }
 
-$markColor = [System.Drawing.Color]::FromArgb(255, 15, 108, 189)
+# Azul de la marca y el mismo verde que el indicador de conexión de la ventana.
+$beaconColor = [System.Drawing.Color]::FromArgb(255, 15, 108, 189)
+$checkColor = [System.Drawing.Color]::FromArgb(255, 16, 124, 65)
 
 function New-MarkPng([int]$Size) {
     $bitmap = New-Object System.Drawing.Bitmap($Size, $Size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
@@ -42,11 +44,14 @@ function New-MarkPng([int]$Size) {
         $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
         $graphics.Clear([System.Drawing.Color]::Transparent)
 
-        $centerX = $Size * 0.30
-        $centerY = $Size * 0.72
-        $dotRadius = $Size * 0.13
+        $small = $Size -lt 32
 
-        $brush = New-Object System.Drawing.SolidBrush($markColor)
+        # Faro: el radio que la aplicación deja emitiendo.
+        $centerX = $Size * 0.20
+        $centerY = $Size * 0.74
+        $dotRadius = $Size * 0.105
+
+        $brush = New-Object System.Drawing.SolidBrush($beaconColor)
         $graphics.FillEllipse(
             $brush,
             [single]($centerX - $dotRadius),
@@ -55,11 +60,11 @@ function New-MarkPng([int]$Size) {
             [single]($dotRadius * 2))
         $brush.Dispose()
 
-        # Two heavier arcs below 32 px, three lighter ones above.
-        $radii = if ($Size -lt 32) { @(0.32, 0.56) } else { @(0.30, 0.46, 0.62) }
-        $strokeWidth = if ($Size -lt 32) { $Size * 0.13 } else { $Size * 0.10 }
+        # Dos arcos más gruesos por debajo de 32 px, tres más finos por encima.
+        $radii = if ($small) { @(0.26, 0.46) } else { @(0.24, 0.38, 0.52) }
+        $beaconStroke = if ($small) { $Size * 0.115 } else { $Size * 0.088 }
 
-        $pen = New-Object System.Drawing.Pen($markColor, [single]$strokeWidth)
+        $pen = New-Object System.Drawing.Pen($beaconColor, [single]$beaconStroke)
         $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
         $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
         foreach ($factor in $radii) {
@@ -70,11 +75,40 @@ function New-MarkPng([int]$Size) {
                 [single]($centerY - $radius),
                 [single]($radius * 2),
                 [single]($radius * 2),
-                [single](-78),
-                [single](72))
+                [single](-80),
+                [single](74))
         }
 
         $pen.Dispose()
+
+        # Distintivo de conformidad, abajo a la derecha: la prioridad quedó resuelta.
+        # Por debajo de 24 px no se dibuja: el tic blanco dentro del círculo se emborrona
+        # y ensucia el faro, así que el icono se simplifica en vez de empeorar.
+        if ($Size -ge 24)
+        {
+        $badgeRadius = $Size * 0.26
+        $badgeX = $Size * 0.72
+        $badgeY = $Size * 0.72
+
+        $badgeBrush = New-Object System.Drawing.SolidBrush($checkColor)
+        $graphics.FillEllipse(
+            $badgeBrush,
+            [single]($badgeX - $badgeRadius),
+            [single]($badgeY - $badgeRadius),
+            [single]($badgeRadius * 2),
+            [single]($badgeRadius * 2))
+        $badgeBrush.Dispose()
+
+        $checkPen = New-Object System.Drawing.Pen([System.Drawing.Color]::White, [single]($Size * 0.075))
+        $checkPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+        $checkPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+        $checkPen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
+        $graphics.DrawLines($checkPen, [System.Drawing.PointF[]]@(
+            (New-Object System.Drawing.PointF([single]($badgeX - $badgeRadius * 0.48), [single]$badgeY)),
+            (New-Object System.Drawing.PointF([single]($badgeX - $badgeRadius * 0.10), [single]($badgeY + $badgeRadius * 0.38))),
+            (New-Object System.Drawing.PointF([single]($badgeX + $badgeRadius * 0.50), [single]($badgeY - $badgeRadius * 0.42)))))
+        $checkPen.Dispose()
+        }
     }
     finally {
         $graphics.Dispose()
