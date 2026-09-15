@@ -19,6 +19,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly NotifyIcon notifyIcon;
     private readonly SynchronizationContext uiContext;
     private Process? settingsProcess;
+    private volatile bool exiting;
 
     public TrayApplicationContext()
     {
@@ -42,7 +43,20 @@ internal sealed class TrayApplicationContext : ApplicationContext
             }
         };
 
+        // El arranque no corre en el constructor: puede mostrar un aviso modal, y mientras
+        // el constructor no vuelve, Program todavía no escucha el evento de cierre. Con el
+        // aviso abierto, el instalador esperaba en vano y abortaba. Diferido, se atiende ya
+        // dentro de Application.Run, con el evento escuchado.
+        uiContext.Post(_ => Start(), null);
+    }
+
+    private void Start()
+    {
         EnsureTasksRegistered();
+        if (exiting)
+        {
+            return;
+        }
 
         // Resolución inicial: el estado actual manda antes de quedar esperando eventos.
         RequestApply();
@@ -55,9 +69,14 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     /// <summary>
     /// Cierra el residente desde otro hilo. Lo llama el instalador a través del evento de
-    /// cierre, así que la salida tiene que volver al hilo de la interfaz.
+    /// cierre, así que la salida tiene que volver al hilo de la interfaz. Si hay un aviso
+    /// abierto, su bucle modal atiende la salida y el aviso se cierra con el hilo.
     /// </summary>
-    public void RequestExit() => uiContext.Post(_ => ExitThread(), null);
+    public void RequestExit()
+    {
+        exiting = true;
+        uiContext.Post(_ => ExitThread(), null);
+    }
 
     private static Configuration LoadConfiguration()
     {
@@ -95,7 +114,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
             "RightBTRadio",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
-        if (answer != DialogResult.Yes)
+
+        // Un cierre pedido con el aviso abierto no debe terminar pidiendo UAC.
+        if (exiting || answer != DialogResult.Yes)
         {
             return;
         }
