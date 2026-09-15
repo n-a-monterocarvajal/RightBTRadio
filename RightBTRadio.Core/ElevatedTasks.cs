@@ -155,6 +155,15 @@ internal static class ElevatedTasks
             """;
     }
 
+    private static readonly Lazy<Encoding> OemEncoding = new(() =>
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        return Encoding.GetEncoding((int)GetOEMCP());
+    });
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern uint GetOEMCP();
+
     private static string Escape(string value) => System.Security.SecurityElement.Escape(value) ?? value;
 
     private static int RunSchtasks(out string error, params string[] arguments) =>
@@ -162,15 +171,18 @@ internal static class ElevatedTasks
 
     private static int RunSchtasks(out string error, out string output, params string[] arguments)
     {
+        // Redirigido, schtasks escribe en la página de códigos OEM de la consola que recibe,
+        // incluso el XML que declara encoding="UTF-16". Leerlo como UTF-16 dejaba el XML
+        // ilegible, AreRegistered daba siempre falso y la bandeja pedía UAC en cada inicio.
+        // Medido: una ruta con «ñ» llega como 0xA4, la ñ de CP850.
+        Encoding consoleEncoding = OemEncoding.Value;
         ProcessStartInfo startInfo = new(Path.Combine(Environment.SystemDirectory, "schtasks.exe"))
         {
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-
-            // schtasks /XML escribe UTF-16; leerlo con la página de códigos de consola
-            // dejaría el XML ilegible.
-            StandardOutputEncoding = Encoding.Unicode
+            StandardOutputEncoding = consoleEncoding,
+            StandardErrorEncoding = consoleEncoding
         };
 
         foreach (string argument in arguments)

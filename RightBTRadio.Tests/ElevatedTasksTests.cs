@@ -40,6 +40,41 @@ public sealed class ElevatedTasksTests
                 @"RightBTRadio\app\RightBTRadio.exe")));
     }
 
+    /// <summary>
+    /// Contra schtasks real: su salida redirigida no es UTF-16, y leerla así hacía que la
+    /// bandeja pidiera registrar las tareas en cada inicio. La tarea de prueba no pide
+    /// elevación y se borra al terminar.
+    /// </summary>
+    [Test]
+    public void LeeLaRutaDeUnaTareaRegistradaConCaracteresNoAscii()
+    {
+        const string taskName = "RightBTRadio.Tests.Encoding";
+        const string executable = @"C:\Configuración\ñandú\RightBTRadio.exe";
+        Assert.That(Schtasks("/Create", "/TN", taskName, "/TR", executable, "/SC", "ONCE", "/ST", "23:59", "/F"), Is.Zero);
+        try
+        {
+            Assert.That(ElevatedTasks.RegisteredExecutable(taskName), Is.EqualTo(executable));
+        }
+        finally
+        {
+            Schtasks("/Delete", "/TN", taskName, "/F");
+        }
+    }
+
+    private static int Schtasks(params string[] arguments)
+    {
+        System.Diagnostics.ProcessStartInfo startInfo = new("schtasks.exe") { CreateNoWindow = true, RedirectStandardOutput = true };
+        foreach (string argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using System.Diagnostics.Process process = System.Diagnostics.Process.Start(startInfo)!;
+        process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        return process.ExitCode;
+    }
+
     [Test]
     public void DevuelveNuloSiElXmlNoTraeAccion()
     {
