@@ -12,9 +12,8 @@
     grid. WPF parses them: its path mini-language is a superset of SVG path data, so no
     parser of our own is needed and the shapes stay exactly as MDI drew them.
 
-    MDI's own "-check" icons carve the subject where the badge sits. Here the bluetooth
-    glyph is scaled into the upper-left instead, which leaves the corner free without
-    altering a shape that is not ours to redraw.
+    The badge is MDI's `check-circle`, scaled down and laid over the lower-right of the
+    glyph, which is carved by a slightly larger circle so the badge reads apart from it.
 
     Attribution: Material Design Icons by Pictogrammers, Apache License 2.0. See the
     licence section of README.md.
@@ -48,8 +47,12 @@ if (-not $OutputPath) {
 
 # Datos de ruta de Material Design Icons, rejilla 24x24.
 $bluetoothPath = 'M14.88,16.29L13,18.17V14.41M13,5.83L14.88,7.71L13,9.58M17.71,7.71L12,2H11V9.58L6.41,5L5,6.41L10.59,12L5,17.58L6.41,19L11,14.41V22H12L17.71,16.29L13.41,12L17.71,7.71Z'
-# La insignia de conformidad que MDI repite en todas sus variantes «-check».
-$checkPath = 'M22.5 17.25L17.75 22L15 19L16.16 17.84L17.75 19.43L21.34 15.84L22.5 17.25Z'
+# check-circle: círculo de radio 10 en (12, 12) con el visto calado.
+$checkPath = 'M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z'
+# Centro, escala y separación de la insignia en la rejilla de 24.
+$badgeCenter = 18.5
+$badgeScale = 0.5
+$badgeGap = 1
 
 $bluetoothBrush = New-Object System.Windows.Media.SolidColorBrush(
     [System.Windows.Media.Color]::FromRgb(15, 108, 189))
@@ -69,18 +72,22 @@ function New-MarkPng([int]$Size) {
         $withBadge = $Size -ge 24
 
         if ($withBadge) {
-            # Encoger el glifo hacia la esquina superior izquierda para dejar libre el
-            # rincón de la insignia. El glifo mide 12,71 x 20 desde (5, 2).
-            $group = New-Object System.Windows.Media.TransformGroup
-            $group.Children.Add((New-Object System.Windows.Media.TranslateTransform(-5, -2)))
-            $group.Children.Add((New-Object System.Windows.Media.ScaleTransform(0.95, 0.95)))
-            $group.Children.Add((New-Object System.Windows.Media.TranslateTransform(0.8, 0.4)))
-            $context.PushTransform($group)
-            $context.DrawGeometry($bluetoothBrush, $null, $bluetooth)
-            $context.Pop()
+            # La insignia es check-circle reducido, montado sobre el glifo. Un anillo
+            # transparente, un poco mayor que el círculo, lo separa del trazo del B.
+            $carve = New-Object System.Windows.Media.EllipseGeometry(
+                (New-Object System.Windows.Point($badgeCenter, $badgeCenter)),
+                (10 * $badgeScale + $badgeGap), (10 * $badgeScale + $badgeGap))
+            $carved = [System.Windows.Media.Geometry]::Combine(
+                $bluetooth, $carve, [System.Windows.Media.GeometryCombineMode]::Exclude, $null)
+            $context.DrawGeometry($bluetoothBrush, $null, $carved)
 
-            $context.DrawGeometry($checkBrush, $null,
-                [System.Windows.Media.Geometry]::Parse($checkPath))
+            $group = New-Object System.Windows.Media.TransformGroup
+            $group.Children.Add((New-Object System.Windows.Media.TranslateTransform(-12, -12)))
+            $group.Children.Add((New-Object System.Windows.Media.ScaleTransform($badgeScale, $badgeScale)))
+            $group.Children.Add((New-Object System.Windows.Media.TranslateTransform($badgeCenter, $badgeCenter)))
+            $context.PushTransform($group)
+            $context.DrawGeometry($checkBrush, $null, [System.Windows.Media.Geometry]::Parse($checkPath))
+            $context.Pop()
         }
         else {
             # Sin insignia el glifo ocupa el cuadro entero, centrado.
