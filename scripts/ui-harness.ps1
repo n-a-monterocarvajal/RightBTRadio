@@ -269,8 +269,9 @@ foreach ($id in @(
         $contract.RemoveButtonId,
         $contract.MoveUpButtonId,
         $contract.MoveDownButtonId,
-        $contract.StartWithWindowsToggleId,
-        $contract.StartMinimizedToggleId)) {
+        $contract.SettingsButtonId,
+        $contract.AboutButtonId,
+        $contract.HelpButtonId)) {
     Assert-True "element $id exists" ($null -ne (Find-Element $handle $id ''))
 }
 
@@ -286,19 +287,15 @@ Assert-True 'width at least the promised minimum' ($window.width -ge $expectedWi
 Assert-True 'height at least the promised minimum' ($window.height -ge $expectedHeight - 2) `
     "expected >= $expectedHeight, actual $($window.height)"
 
-Write-Section 'General settings'
-# The startup switch is read, never actioned: its handler writes the machine's own
-# autostart configuration and a harness must not change the station it runs on.
-$toggleState = Get-ElementProperty $handle $contract.StartWithWindowsToggleId 'ToggleState'
-Assert-True 'start-with-Windows switch readable' ($null -ne $toggleState) "ToggleState = $toggleState"
+function Save-Evidence([string]$Name) {
+    if ($SkipEvidence) { return }
 
-if (-not $SkipEvidence) {
-    Write-Section 'Evidence'
     $directory = Join-Path $repositoryRoot $EvidenceDirectory
     New-Item -ItemType Directory -Force -Path $directory | Out-Null
-    $screenshot = Join-Path $directory ("settings-{0:yyyyMMdd-HHmmss}.png" -f (Get-Date))
+    $screenshot = Join-Path $directory ("{0}-{1:yyyyMMdd-HHmmss}.png" -f $Name, (Get-Date))
     # No selector: with one, winapp captures that element and not the window. --capture-screen
-    # goes through the screen DC, which is what shows whether Mica is actually rendering.
+    # goes through the screen DC, which is what shows whether Mica is actually rendering and
+    # also catches the flyout, which is a popup outside the window's own surface.
     Invoke-Winapp @('ui', 'screenshot', '-w', $handle, '--capture-screen', '--output', $screenshot) | Out-Null
     if (Test-Path $screenshot) {
         Write-Host "  $screenshot"
@@ -307,6 +304,27 @@ if (-not $SkipEvidence) {
         Write-Host '  screenshot not produced' -ForegroundColor Yellow
     }
 }
+
+Save-Evidence 'settings'
+
+Write-Section 'Settings flyout'
+# The switches and the theme live in the gear flyout and only join the automation tree once
+# it opens. Invoke opens it without injecting input.
+Invoke-Winapp @('ui', 'invoke', $contract.SettingsButtonId, '-w', $handle) | Out-Null
+Start-Sleep -Milliseconds 600
+foreach ($id in @(
+        $contract.StartWithWindowsToggleId,
+        $contract.StartMinimizedToggleId,
+        $contract.ThemeRadioButtonsId)) {
+    Assert-True "element $id exists" ($null -ne (Find-Element $handle $id ''))
+}
+
+# The startup switch is read, never actioned: its handler writes the machine's own
+# autostart configuration and a harness must not change the station it runs on.
+$toggleState = Get-ElementProperty $handle $contract.StartWithWindowsToggleId 'ToggleState'
+Assert-True 'start-with-Windows switch readable' ($null -ne $toggleState) "ToggleState = $toggleState"
+
+Save-Evidence 'settings-flyout'
 
 if ($process -and -not $KeepOpen -and -not $Attach) {
     $process | Stop-Process -Force -ErrorAction SilentlyContinue

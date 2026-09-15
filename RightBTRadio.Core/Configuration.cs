@@ -24,6 +24,13 @@ internal sealed class ConfiguredDevice
     public string InstanceId { get; set; } = string.Empty;
 }
 
+internal enum ThemePreference
+{
+    System,
+    Light,
+    Dark
+}
+
 internal sealed class PriorityGroup
 {
     public required string Id { get; set; }
@@ -54,6 +61,13 @@ internal sealed class Configuration
 
     /// <summary>Si es falso, la ventana de ajustes se abre al arrancar.</summary>
     public bool StartMinimized { get; set; } = true;
+
+    /// <summary>
+    /// Tema de la ventana de ajustes. Campo nuevo con valor por defecto: un archivo sin él
+    /// sigue siendo válido, así que no sube la versión del esquema.
+    /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter<ThemePreference>))]
+    public ThemePreference Theme { get; set; } = ThemePreference.System;
 
     public List<PriorityGroup> Groups { get; set; } = [];
 

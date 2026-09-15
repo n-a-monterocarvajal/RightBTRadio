@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -80,8 +83,12 @@ public sealed partial class SettingsWindow : Window
         DevicesDescription.Text = SettingsVisualContract.DevicesDescription;
         PriorityDescription.Text = SettingsVisualContract.PriorityDescription;
 
+        AboutDescriptionText.Text = SettingsVisualContract.Subtitle;
+        AboutVersionText.Text = $"v{ApplicationVersion()}";
+
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(TitleBarArea);
+        TitleBarInteraction.Track(this, TitleBarArea, TitleBarCluster, SettingsButton, AboutButton, HelpButton);
         SetWindowIcon();
         TryEnableBackdrop();
         ResizeForCurrentDpi();
@@ -91,7 +98,73 @@ public sealed partial class SettingsWindow : Window
 
         ApplyAutomationIds();
         Reload(selectedHardwareId: null);
+        ApplyTheme(configuration.Theme);
+        // Con «Sistema», un cambio de tema de Windows tiene que llegar también a los botones.
+        ((FrameworkElement)Content).ActualThemeChanged += (_, _) => ApplyTheme(configuration.Theme);
         StartWatching();
+    }
+
+    /// <summary>Versión del ensamblado sin el sufijo de commit que agrega el SDK.</summary>
+    private static string ApplicationVersion()
+    {
+        string version = typeof(SettingsWindow).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
+        int metadata = version.IndexOf('+');
+        return metadata >= 0 ? version[..metadata] : version;
+    }
+
+    /// <summary>
+    /// WinUI 3 no tiene un tema de aplicación modificable en ejecución: se aplica a la raíz
+    /// de la ventana, y Mica lo sigue. Los botones de minimizar, maximizar y cerrar los
+    /// dibuja el sistema y no lo siguen, así que sus colores se fijan aparte.
+    /// </summary>
+    private void ApplyTheme(ThemePreference preference)
+    {
+        if (Content is not FrameworkElement root)
+        {
+            return;
+        }
+
+        root.RequestedTheme = preference switch
+        {
+            ThemePreference.Light => ElementTheme.Light,
+            ThemePreference.Dark => ElementTheme.Dark,
+            _ => ElementTheme.Default
+        };
+
+        if (AppWindowTitleBar.IsCustomizationSupported() && AppWindow?.TitleBar is { } titleBar)
+        {
+            bool dark = root.ActualTheme == ElementTheme.Dark;
+            Windows.UI.Color foreground = dark ? Colors.White : Colors.Black;
+            Windows.UI.Color hover = dark
+                ? Windows.UI.Color.FromArgb(255, 50, 50, 50)
+                : Windows.UI.Color.FromArgb(255, 230, 230, 230);
+
+            // Transparente: el fondo de la franja es Mica y un color sólido lo cortaría.
+            titleBar.ButtonBackgroundColor = Colors.Transparent;
+            titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+            titleBar.ButtonForegroundColor = foreground;
+            titleBar.ButtonHoverBackgroundColor = hover;
+            titleBar.ButtonHoverForegroundColor = foreground;
+            titleBar.ButtonPressedBackgroundColor = hover;
+            titleBar.ButtonPressedForegroundColor = foreground;
+        }
+    }
+
+    private void OnThemeSelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (loading || ThemeRadioButtons.SelectedItem is not RadioButton { Tag: string tag } ||
+            !Enum.TryParse(tag, out ThemePreference preference) ||
+            // RadioButtons avisa la selección que Reload fija de forma diferida, ya fuera del
+            // bloque loading; sin esta comparación la ventana guardaba al abrirse.
+            preference == configuration.Theme)
+        {
+            return;
+        }
+
+        configuration.Theme = preference;
+        ApplyTheme(preference);
+        Save(SelectedDeviceHardwareId);
     }
 
     /// <summary>
@@ -150,6 +223,10 @@ public sealed partial class SettingsWindow : Window
         AutomationProperties.SetAutomationId(MoveDownButton, SettingsVisualContract.MoveDownButtonId);
         AutomationProperties.SetAutomationId(StartWithWindowsToggle, SettingsVisualContract.StartWithWindowsToggleId);
         AutomationProperties.SetAutomationId(StartMinimizedToggle, SettingsVisualContract.StartMinimizedToggleId);
+        AutomationProperties.SetAutomationId(SettingsButton, SettingsVisualContract.SettingsButtonId);
+        AutomationProperties.SetAutomationId(AboutButton, SettingsVisualContract.AboutButtonId);
+        AutomationProperties.SetAutomationId(HelpButton, SettingsVisualContract.HelpButtonId);
+        AutomationProperties.SetAutomationId(ThemeRadioButtons, SettingsVisualContract.ThemeRadioButtonsId);
         AutomationProperties.SetAutomationId(DevicesDescription, SettingsVisualContract.DevicesDescriptionId);
         AutomationProperties.SetAutomationId(PriorityDescription, SettingsVisualContract.PriorityDescriptionId);
     }
@@ -262,6 +339,7 @@ public sealed partial class SettingsWindow : Window
 
             StartWithWindowsToggle.IsOn = StartupManager.IsEnabled;
             StartMinimizedToggle.IsOn = configuration.StartMinimized;
+            ThemeRadioButtons.SelectedIndex = (int)configuration.Theme;
 
             Select(DevicesList, devices, selectedHardwareId);
             Select(PriorityList, priority, selectedHardwareId);

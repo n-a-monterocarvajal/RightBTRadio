@@ -43,6 +43,15 @@ internal static class SettingsVisualContract
 
     public const string MoveDownButtonId = "MoveDownButton";
 
+    public const string SettingsButtonId = "SettingsButton";
+
+    public const string AboutButtonId = "AboutButton";
+
+    public const string HelpButtonId = "HelpButton";
+
+    /// <summary>Dentro del flyout de ajustes, igual que los dos interruptores.</summary>
+    public const string ThemeRadioButtonsId = "ThemeRadioButtons";
+
     public const string StartWithWindowsToggleId = "StartWithWindowsToggle";
 
     public const string StartMinimizedToggleId = "StartMinimizedToggle";

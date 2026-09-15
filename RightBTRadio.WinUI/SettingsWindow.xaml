@@ -28,7 +28,14 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid x:Name="TitleBarArea" Height="40" Padding="16,0,0,0">
+        <Grid
+            x:Name="TitleBarArea"
+            Height="40"
+            Padding="16,0,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
             <StackPanel
                 VerticalAlignment="Center"
                 Orientation="Horizontal"
@@ -41,6 +48,208 @@
                     x:Name="TitleBarText"
                     VerticalAlignment="Center"
                     Style="{StaticResource CaptionTextBlockStyle}" />
+            </StackPanel>
+
+            <!--
+                Botonera de la barra de título. El margen derecho y las zonas clicables los
+                calcula TitleBarInteraction. Orden: Ajustes, Acerca de, Ayuda. Lo único fijado
+                por la barra de menús clásica es que Ayuda va última.
+            -->
+            <StackPanel
+                x:Name="TitleBarCluster"
+                Grid.Column="1"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="2">
+                <StackPanel.Resources>
+                    <!--
+                        SubtleButtonStyle: sin relleno en reposo y con un hover que sí se
+                        percibe sobre Mica, a diferencia del Button por defecto. Padding 0 no es
+                        cosmético: con el borde de 1 del estilo, un relleno de 8 deja 14 px para
+                        un glifo de 16 y le corta la fila superior.
+                    -->
+                    <Style
+                        x:Key="TitleBarIconButtonStyle"
+                        BasedOn="{StaticResource SubtleButtonStyle}"
+                        TargetType="Button">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="MinWidth" Value="32" />
+                        <Setter Property="Width" Value="32" />
+                        <Setter Property="Height" Value="32" />
+                    </Style>
+                </StackPanel.Resources>
+
+                <Button
+                    x:Name="SettingsButton"
+                    AutomationProperties.Name="Ajustes"
+                    Style="{StaticResource TitleBarIconButtonStyle}"
+                    ToolTipService.ToolTip="Ajustes">
+                    <FontIcon
+                        Width="16"
+                        Height="16"
+                        FontSize="16"
+                        Glyph="&#xE713;" />
+                    <Button.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedRight">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="CornerRadius" Value="8" />
+                                    <Setter Property="Padding" Value="20" />
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <!--  Ancho fijo: un Flyout mide con ancho infinito y el texto no envolvería.  -->
+                            <StackPanel Width="300" Spacing="16">
+                                <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Ajustes" />
+                                <ToggleSwitch
+                                    x:Name="StartWithWindowsToggle"
+                                    Header="Iniciar con Windows"
+                                    OffContent="No"
+                                    OnContent="Sí"
+                                    Toggled="OnStartWithWindowsToggled" />
+                                <ToggleSwitch
+                                    x:Name="StartMinimizedToggle"
+                                    OffContent="No"
+                                    OnContent="Sí"
+                                    Toggled="OnStartMinimizedToggled">
+                                    <ToggleSwitch.Header>
+                                        <TextBlock Text="Iniciar minimizado en el área de notificación" TextWrapping="Wrap" />
+                                    </ToggleSwitch.Header>
+                                </ToggleSwitch>
+                                <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                <RadioButtons
+                                    x:Name="ThemeRadioButtons"
+                                    Header="Tema"
+                                    SelectionChanged="OnThemeSelectionChanged">
+                                    <RadioButton Content="Sistema" Tag="System" />
+                                    <RadioButton Content="Claro" Tag="Light" />
+                                    <RadioButton Content="Oscuro" Tag="Dark" />
+                                </RadioButtons>
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Button
+                    x:Name="AboutButton"
+                    AutomationProperties.Name="Acerca de RightBTRadio"
+                    Style="{StaticResource TitleBarIconButtonStyle}"
+                    ToolTipService.ToolTip="Acerca de">
+                    <FontIcon
+                        Width="16"
+                        Height="16"
+                        FontSize="16"
+                        Glyph="&#xE946;" />
+                    <Button.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedRight">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="CornerRadius" Value="8" />
+                                    <Setter Property="Padding" Value="20" />
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <StackPanel Width="320" Spacing="16">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Image
+                                        Width="32"
+                                        Height="32"
+                                        Source="ms-appx:///Assets/RightBTRadio.png" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="RightBTRadio" />
+                                        <TextBlock
+                                            x:Name="AboutVersionText"
+                                            Opacity="0.65"
+                                            Style="{StaticResource CaptionTextBlockStyle}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <!--  La identidad va fuera de la tarjeta; lo que se cuenta de la aplicación, dentro.  -->
+                                <Border
+                                    Padding="16"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{ThemeResource OverlayCornerRadius}">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock
+                                            x:Name="AboutDescriptionText"
+                                            Opacity="0.85"
+                                            TextWrapping="Wrap" />
+                                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                        <TextBlock
+                                            Opacity="0.8"
+                                            Text="Licencia MIT. © 2026 n-a-monterocarvajal."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Button
+                    x:Name="HelpButton"
+                    AutomationProperties.Name="Ayuda y preguntas frecuentes"
+                    Style="{StaticResource TitleBarIconButtonStyle}"
+                    ToolTipService.ToolTip="Ayuda">
+                    <FontIcon
+                        Width="16"
+                        Height="16"
+                        FontSize="16"
+                        Glyph="&#xE897;" />
+                    <Button.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedRight">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="CornerRadius" Value="8" />
+                                    <Setter Property="Padding" Value="0" />
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <ScrollViewer
+                                Width="440"
+                                MaxHeight="560"
+                                Padding="20"
+                                HorizontalScrollMode="Disabled"
+                                VerticalScrollBarVisibility="Auto">
+                                <StackPanel Width="400" Spacing="14">
+                                    <StackPanel.Resources>
+                                        <Style TargetType="Expander">
+                                            <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        </Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextWrapping" Value="Wrap" />
+                                        </Style>
+                                    </StackPanel.Resources>
+
+                                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Ayuda y preguntas frecuentes" />
+
+                                    <Expander Header="¿Por qué deshabilitar un radio?">
+                                        <TextBlock Padding="0,12,0,4" Text="Windows no maneja dos radios Bluetooth a la vez. Con un adaptador USB conectado teniendo uno integrado, uno de los dos queda con el código de problema 31 y deja de funcionar. RightBTRadio deja habilitado uno solo y deshabilita el resto." />
+                                    </Expander>
+
+                                    <Expander Header="¿Qué radio queda habilitado?">
+                                        <TextBlock Padding="0,12,0,4" Text="El primero del grupo de prioridad que esté conectado. Si lo desconecta, pasa al siguiente; al reconectarlo, vuelve a quedar habilitado. Los radios que no están en el grupo no se tocan." />
+                                    </Expander>
+
+                                    <Expander Header="¿Qué pasa con los dispositivos emparejados?">
+                                        <StackPanel Padding="0,12,0,4" Spacing="8">
+                                            <TextBlock Text="Deshabilitar un radio corta todo lo emparejado a él. Si ese radio lleva su teclado o su ratón, se quedará sin ellos hasta conectarlos por cable." />
+                                            <TextBlock Opacity="0.78" Text="Para salir de eso, use «Habilitar todos los radios» en el menú del área de notificación. Desinstalar la aplicación también los habilita." />
+                                        </StackPanel>
+                                    </Expander>
+
+                                    <Expander Header="¿Qué significan «Interno» y «Externo»?">
+                                        <TextBlock Padding="0,12,0,4" Text="Es lo que Windows informa sobre si el radio puede retirarse del equipo. Solo es informativo: la prioridad la decide únicamente el orden del grupo." />
+                                    </Expander>
+
+                                    <Expander Header="¿Por qué pidió permiso de administrador?">
+                                        <TextBlock Padding="0,12,0,4" Text="Habilitar y deshabilitar dispositivos lo exige. La aplicación registra una vez dos tareas programadas que hacen ese trabajo, y después funciona sin volver a pedir permiso." />
+                                    </Expander>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
             </StackPanel>
         </Grid>
 
@@ -55,7 +264,6 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <StackPanel Spacing="4">
@@ -292,27 +500,6 @@
                     </Grid>
                 </Border>
             </Grid>
-
-            <!--  Ajustes generales  -->
-            <Border
-                Grid.Row="2"
-                Padding="16,8"
-                Style="{StaticResource PanelCardStyle}">
-                <StackPanel Orientation="Horizontal" Spacing="48">
-                    <ToggleSwitch
-                        x:Name="StartWithWindowsToggle"
-                        Header="Iniciar con Windows"
-                        OffContent="No"
-                        OnContent="Sí"
-                        Toggled="OnStartWithWindowsToggled" />
-                    <ToggleSwitch
-                        x:Name="StartMinimizedToggle"
-                        Header="Iniciar minimizado en el área de notificación"
-                        OffContent="No"
-                        OnContent="Sí"
-                        Toggled="OnStartMinimizedToggled" />
-                </StackPanel>
-            </Border>
         </Grid>
     </Grid>
 </Window>
