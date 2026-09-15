@@ -18,8 +18,7 @@ internal static class SettingsVisualContract
         "Mantiene habilitado un solo radio Bluetooth cuando hay varios presentes.";
 
     public const string DevicesDescription =
-        "Los radios presentes en el sistema y los que ya están en el grupo. " +
-        "El punto verde indica que el radio está conectado.";
+        "Los radios presentes y los del grupo. El punto verde indica conexión.";
 
     public const string PriorityDescription =
         "El primero de la lista es el que queda habilitado; el resto se deshabilita.";

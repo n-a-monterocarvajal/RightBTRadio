@@ -326,7 +326,8 @@ public sealed partial class SettingsWindow : Window
             configuration.DefaultGroup.Devices.Any(device => Matches(device, hardwareId));
 
         AddButton.IsEnabled = hardwareId is not null;
-        AddButton.Content = inGroup ? "Actualizar alias" : "Agregar al grupo";
+        AddButtonText.Text = inGroup ? "Actualizar alias" : "Agregar";
+        AutomationProperties.SetName(AddButton, inGroup ? "Actualizar alias" : "Agregar al grupo");
         RemoveButton.IsEnabled = inGroup;
 
         int index = PriorityList.SelectedIndex;

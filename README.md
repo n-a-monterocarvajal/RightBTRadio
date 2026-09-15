@@ -57,7 +57,7 @@ es la que lee `BluetoothRadios`.
 un orden total; una clasificación binaria solo puede repetir lo que la lista ya dice o
 contradecirla. Con un interno y un dongle, la presencia del dongle basta, porque un
 dongle desenchufado no se enumera. Con dos internos o dos dongles, el factor no
-distingue nada. Se muestra en la ventana, en la columna «Tipo», y ahí termina.
+distingue nada. Se muestra en la ventana, bajo el estado de cada radio, y ahí termina.
 
 Lo que sí usa el estado del sistema es el orden inicial: al agregar un radio al grupo,
 uno habilitado entra por encima de los que estén deshabilitados. Un radio que el
