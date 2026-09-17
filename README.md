@@ -1,47 +1,56 @@
 # RightBTRadio
 
 Utilidad para Windows que mantiene habilitado un solo radio Bluetooth cuando hay
-varios presentes en el sistema.
+varios conectados.
 
-Los radios se agrupan y se les asigna una prioridad. Cada vez que cambia la presencia
-de dispositivos, la aplicación deja habilitado el radio presente de mayor prioridad y
-deshabilita el resto.
+Usted ordena sus radios en un grupo de prioridad. Cada vez que se conecta o se
+desconecta un dispositivo, la aplicación deja habilitado el primer radio conectado del
+grupo y deshabilita los demás.
+
+![Ventana de ajustes de RightBTRadio](docs/images/ajustes.png)
+
+## Descarga
+
+La última versión está en [Releases](https://github.com/n-a-monterocarvajal/RightBTRadio/releases).
+Descargue `RightBTRadio-<versión>-Setup.exe` y ejecútelo. El instalador pide permiso
+de administrador una vez.
 
 ## Por qué existe
 
-Windows no maneja dos radios Bluetooth a la vez, a diferencia de lo que hace con dos
-antenas Wi-Fi. Con los dos presentes, uno queda con el código de problema 31,
-`CM_PROB_FAILED_INSTALL`: Windows no carga su controlador. Quien conecta un adaptador
-USB teniendo uno integrado se encuentra con que uno de los dos deja de servir, y con
-que resolverlo a mano es entrar al Administrador de dispositivos cada vez.
+Windows no puede usar dos radios Bluetooth a la vez, aunque sí maneja dos adaptadores
+Wi-Fi. Con los dos conectados, uno queda con el código de problema 31,
+`CM_PROB_FAILED_INSTALL`, porque Windows no carga su controlador. Si conecta un
+adaptador USB a un equipo con Bluetooth integrado, uno de los dos deja de funcionar, y
+la única solución manual es entrar al Administrador de dispositivos cada vez.
 
-Deshabilitar al radio perdedor no basta: el nodo del ganador no se recupera solo
-cuando el conflicto desaparece. Medido sobre hardware real, `CM_Reenumerate_DevNode`
-con `CM_REENUMERATE_RETRY_INSTALLATION` deja el problema 31 intacto; un ciclo de
-deshabilitar y volver a habilitar el nodo del ganador lo lleva a 0 en unos segundos.
-Por eso `--apply` termina con ese ciclo cuando el ganador quedó con un problema.
+Deshabilitar el radio que pierde no alcanza, porque el nodo del ganador no se recupera
+solo cuando desaparece el conflicto. En pruebas con hardware real,
+`CM_Reenumerate_DevNode` con `CM_REENUMERATE_RETRY_INSTALLATION` dejó el problema 31
+intacto. Deshabilitar y volver a habilitar el nodo del ganador lo llevó a 0 en unos
+segundos. Por eso `--apply` termina con ese ciclo cuando el ganador tiene un problema.
 
-Queda pendiente comprobar si ese ciclo es la única vía. El código lo anota con un
-comentario `ponytail:` que enumera las alternativas sin probar.
+Falta comprobar si ese ciclo es la única vía. El comentario `ponytail:` de
+`RadioService.cs` enumera las alternativas sin probar, y hay un
+[issue abierto](https://github.com/n-a-monterocarvajal/RightBTRadio/issues) para
+investigarlas.
 
 ## Instalación
 
-Descargue `RightBTRadio-<versión>-Setup.exe` y ejecútelo. Pide elevación una vez.
+El instalador pesa 7,7 MB. Si faltan el .NET Desktop Runtime o el Windows App Runtime,
+los descarga con los instaladores oficiales de Microsoft. Si ya están instalados, no
+descarga nada. La aplicación queda en `%ProgramFiles%\RightBTRadio`, y el instalador
+registra las dos tareas programadas que hacen el trabajo con privilegios de
+administrador. Después, la aplicación no vuelve a pedir permisos.
 
-El instalador es liviano, 7,7 MB. Si faltan el .NET Desktop Runtime o el Windows App
-Runtime, los descarga de los bootstrappers oficiales de Microsoft; en una máquina que
-ya los tiene no descarga nada. Instala en `%ProgramFiles%\RightBTRadio` y registra las
-dos tareas programadas que hacen el trabajo elevado, así que la aplicación no vuelve a
-pedir permisos.
+Requiere Windows 10 versión 1809 o posterior, de 64 bits. Solo se probó en Windows 11.
 
-Requiere Windows 11 x64. Aprovechando esa misma elevación, la desinstalación devuelve
-todos los radios a su estado habilitado antes de borrar nada: quien desinstale con un
-radio deshabilitado no se queda sin él.
+Al desinstalar, primero se habilitan todos los radios y después se borran los
+archivos. Así, quien desinstale con un radio deshabilitado no se queda sin él.
 
-## Interno contra externo
+## Interno y externo
 
-Windows distingue un radio integrado de uno desconectable sin ambigüedad. Medido sobre
-hardware real:
+Windows indica sin ambigüedad si un radio viene integrado o se puede quitar. Estos son
+los valores medidos en hardware real:
 
 | | Radio externo | Radio interno |
 |---|---|---|
@@ -50,46 +59,49 @@ hardware real:
 | `ContainerId` | propio | `{00000000-0000-0000-FFFF-FFFFFFFFFFFF}` |
 | `EnumeratorName` | USB | USB |
 
-El nombre del enumerador no sirve para distinguirlos; la política de extracción sí, y
-es la que lee `BluetoothRadios`.
+El nombre del enumerador no sirve para distinguirlos. La política de extracción sí, y
+`BluetoothRadios` la lee.
 
-**Ese dato no interviene en la prioridad, y no es un descuido.** La lista del grupo es
-un orden total; una clasificación binaria solo puede repetir lo que la lista ya dice o
-contradecirla. Con un interno y un dongle, la presencia del dongle basta, porque un
-dongle desenchufado no se enumera. Con dos internos o dos dongles, el factor no
-distingue nada. Se muestra en la ventana, bajo el estado de cada radio, y ahí termina.
+**La prioridad no usa este dato, a propósito.** La lista del grupo ya es un orden
+total, así que una clasificación en dos categorías solo podría repetirla o
+contradecirla. Con un radio interno y un adaptador USB, basta con saber si el
+adaptador está conectado, porque Windows no enumera un adaptador desenchufado. Con dos
+internos o dos externos, el dato no distingue nada. La ventana lo muestra junto al
+estado de cada radio y no se usa para nada más.
 
-Lo que sí usa el estado del sistema es el orden inicial: al agregar un radio al grupo,
-uno habilitado entra por encima de los que estén deshabilitados. Un radio que el
-usuario ya había deshabilitado por su cuenta es una declaración de preferencia. Solo
-decide el orden inicial; después manda lo que el usuario ordene a mano.
+El estado del sistema sí influye en el orden inicial. Al agregar un radio habilitado,
+entra por encima de los que están deshabilitados, porque un radio que el usuario
+deshabilitó por su cuenta indica una preferencia. Después, el orden lo decide el
+usuario con los botones Subir y Bajar.
 
-## Elevación
+## Permisos de administrador
 
-Habilitar y deshabilitar nodos PnP exige privilegios de administrador. El residente
-igualmente corre sin elevar, para poder arrancar desde la clave `Run` y aparecer en
-Configuración → Aplicaciones → Inicio con su propio interruptor.
+Windows exige privilegios de administrador para habilitar y deshabilitar nodos PnP.
+Aun así, el residente se ejecuta sin elevación. De ese modo puede arrancar desde la
+clave `Run` y aparece en Configuración → Aplicaciones → Inicio con su propio
+interruptor.
 
-El trabajo elevado lo hacen dos tareas programadas con `RunLevel HighestAvailable`,
-`RightBTRadio.Apply` y `RightBTRadio.EnableAll`, que el residente dispara con
-`schtasks /Run`. Las registra el instalador; si faltan, la aplicación las pide una vez.
-Son por usuario, así que un segundo usuario de la misma máquina las registra desde la
-ventana de ajustes.
+El trabajo con privilegios lo hacen dos tareas programadas con
+`RunLevel HighestAvailable`: `RightBTRadio.Apply` y `RightBTRadio.EnableAll`. El
+residente las lanza con `schtasks /Run`. El instalador las registra, y si faltan, la
+aplicación pide permiso una vez para registrarlas. Las tareas son por usuario, así que
+otro usuario del mismo equipo las registra al abrir la aplicación.
 
 Son dos tareas y no una con argumentos porque `schtasks /Run` no permite pasar
 argumentos a la acción.
 
 ## Estructura
 
-| Proyecto | Qué contiene |
+| Proyecto | Contenido |
 |---|---|
-| `RightBTRadio.Core` | Enumeración de radios, control de nodos PnP, configuración, resolución de prioridad, tareas programadas y contrato visual. Sin interfaz. |
-| `RightBTRadio` | Residente del área de notificación (WinForms) y los modos sin interfaz. Corre sin elevar. |
-| `RightBTRadio.WinUI` | Ventana de ajustes en WinUI 3, con Mica. Proceso aparte, bajo demanda. |
-| `RightBTRadio.Tests` | Pruebas de la resolución de prioridad, del filtro de enumeradores y de la lectura de tareas. |
+| `RightBTRadio.Core` | Enumeración de radios, control de nodos PnP, ajustes, resolución de prioridad, tareas programadas y contrato visual. No tiene interfaz. |
+| `RightBTRadio` | Residente del área de notificación (WinForms) y modos de línea de comandos. Se ejecuta sin elevación. |
+| `RightBTRadio.WinUI` | Ventana de ajustes en WinUI 3, con Mica. Es un proceso aparte que se abre cuando se necesita. |
+| `RightBTRadio.Tests` | Pruebas de la resolución de prioridad, del filtro de enumeradores, de los ajustes y de la lectura de tareas. |
 
-El residente nunca escribe la configuración: solo la lee. La ventana de ajustes es la
-única que escribe. Por eso no hace falta el IPC que sí necesita RightKeyboard.
+Los ajustes se guardan en `%LocalAppData%\RightBTRadio\preferences.json`. Solo la
+ventana de ajustes los escribe; el residente solo los lee. Por eso no hace falta
+comunicación entre procesos, a diferencia de RightKeyboard.
 
 ## Compilar y probar
 
@@ -98,20 +110,20 @@ dotnet build RightBTRadio.slnx
 dotnet test RightBTRadio.slnx
 ```
 
-Compile siempre la solución. Compilar un proyecto suelto escribe en otra carpeta de
-salida, y entonces el residente y el arnés pueden medir un binario viejo.
+Compile siempre la solución completa. Un proyecto compilado por separado escribe en
+otra carpeta de salida, y el residente o el arnés podrían usar un binario viejo.
 
-## Modos sin interfaz
+## Modos de línea de comandos
 
-Existen para probar durante el desarrollo y para que las tareas programadas tengan qué
-ejecutar. Los dos primeros exigen elevación.
+Sirven para probar durante el desarrollo y son lo que ejecutan las tareas programadas.
+Los dos primeros requieren permisos de administrador.
 
 ```
-RightBTRadio.exe --apply              # resuelve la prioridad y sale
+RightBTRadio.exe --apply              # aplica la prioridad y sale
 RightBTRadio.exe --enable-all         # habilita todos los radios y sale
-RightBTRadio.exe --list               # lista los radios presentes y su estado
+RightBTRadio.exe --list               # muestra los radios detectados y su código de estado
 RightBTRadio.exe --register-tasks     # registra las dos tareas programadas
-RightBTRadio.exe --unregister-tasks   # las elimina
+RightBTRadio.exe --unregister-tasks   # elimina las tareas
 ```
 
 ## Arnés de interfaz
@@ -120,72 +132,74 @@ RightBTRadio.exe --unregister-tasks   # las elimina
 pwsh -File scripts/ui-harness.ps1
 ```
 
-Compila la solución, levanta la ventana de ajustes, afirma lo que promete
-`RightBTRadio.Core/SettingsVisualContract.cs`, deja una captura en
-`artifacts/ui-harness/` y cierra lo que abrió. Sale 0 si todo se afirmó, 1 si algo
-falló.
+El arnés compila la solución, abre la ventana de ajustes y comprueba lo que declara
+`RightBTRadio.Core/SettingsVisualContract.cs`. Guarda una captura en
+`artifacts/ui-harness/` y cierra lo que abrió. Devuelve 0 si todas las comprobaciones
+pasan y 1 si alguna falla.
 
-| Parámetro | Para qué |
+| Parámetro | Uso |
 |---|---|
 | `-Configuration` | `Debug` por omisión; `Release` para revisar lo que se publica |
-| `-Attach` | Mide una ventana ya abierta en lugar de lanzarla, y no la cierra |
-| `-KeepOpen` | Deja la aplicación viva al terminar |
-| `-SkipEvidence` | Omite la captura |
-| `-EvidenceDirectory` | Cambia dónde se deja la captura |
+| `-Attach` | Usa una ventana ya abierta en lugar de abrir otra, y no la cierra |
+| `-KeepOpen` | Deja la aplicación abierta al terminar |
+| `-SkipEvidence` | No guarda la captura |
+| `-EvidenceDirectory` | Cambia la carpeta de la captura |
 
-Necesita una sesión interactiva de Windows: `winapp ui` opera sobre UI Automation, y
-hace falta el [CLI winapp](https://github.com/microsoft/winappcli).
+Necesita una sesión interactiva de Windows, porque `winapp ui` usa UI Automation, y el
+[CLI winapp](https://github.com/microsoft/winappcli).
 
-Los textos esperados se leen del contrato en cada corrida, no se copian al script, así
-que un cambio de contrato sin cambio de interfaz —o al revés— rompe el arnés a
-propósito. Comprobado: al desviar el subtítulo de la ventana respecto del contrato, el
-arnés falla esa aserción y sale 1.
+El script lee los textos esperados del contrato en cada ejecución en lugar de
+copiarlos. Si el contrato cambia y la interfaz no, o al revés, el arnés falla. Se
+comprobó cambiando el subtítulo de la ventana: el arnés marcó esa comprobación como
+fallida y devolvió 1.
 
-El arnés usa solo los verbos que no inyectan entrada. La captura no es una aserción
-sino evidencia; es lo primero que se puede omitir.
+El arnés solo usa comandos que no simulan entrada del usuario. La captura sirve como
+evidencia y no forma parte de las comprobaciones, así que se puede omitir.
 
-Lo que no resuelve: si Mica se está viendo de verdad —Windows cae a color sólido sin
-avisar a la aplicación, y la captura sirve para desempatarlo a ojo—, la alineación y
-los estados visuales, y la conexión o desconexión física de un radio.
+El arnés no comprueba si Mica se ve de verdad (Windows usa un color sólido sin avisar
+a la aplicación, y la captura sirve para verificarlo a ojo), la alineación, los
+estados visuales ni la conexión física de un radio.
 
-## Construir el instalador
+## Generar el instalador
 
 ```
 pwsh -File scripts/build-installer.ps1
 ```
 
-Publica los dos ejecutables en una sola carpeta, dependientes del marco, descarta los
-40 MB de Windows ML que el Windows App SDK arrastra sin que la aplicación los use, y
-compila el instalador con Inno Setup. Deja el resultado y su SHA-256 en
-`artifacts/installer/`.
+El script publica los dos ejecutables en una misma carpeta, dependientes del marco, y
+descarta los 40 MB de Windows ML que el Windows App SDK incluye aunque la aplicación
+no los usa. Después compila el instalador con Inno Setup y deja el resultado y su
+SHA-256 en `artifacts/installer/`.
 
-`-SkipInstaller` publica y verifica sin llegar a Inno Setup.
+Con `-SkipInstaller`, publica y verifica sin ejecutar Inno Setup.
 
-El icono se genera por código y no se versiona como binario opaco:
+El icono se genera con código en lugar de guardarse como binario:
 
 ```
 pwsh -File scripts/make-icon.ps1
 ```
 
-## Procedencia y licencia
+## Origen y licencia
 
-MIT, archivo `LICENSE`.
+MIT. Consulte el archivo `LICENSE`.
 
-El esqueleto viene de [RightKeyboard](https://github.com/n-a-monterocarvajal/RightKeyboard),
-que es una obra derivada por capas: la anterior al fork está bajo CPOL 1.02 y los forks
-intermedios no declararon licencia; solo los cambios propios del fork son MIT.
+La estructura base viene de [RightKeyboard](https://github.com/n-a-monterocarvajal/RightKeyboard),
+que es una obra derivada en capas. La capa anterior al fork usa la licencia CPOL 1.02,
+los forks intermedios no declararon licencia y solo los cambios propios del fork son
+MIT.
 
-RightBTRadio reutiliza únicamente archivos de esa capa MIT, escritos en junio y julio
-de 2026: `NativeTrayMenu.cs`, `StartupManager.cs`, `DeviceIdentityResolver.cs`,
-`RawInputWindow.cs` y `TrayApplicationContext.cs`, más los criterios de
+RightBTRadio reutiliza solo archivos de la capa MIT, escritos en junio y julio de 2026:
+`NativeTrayMenu.cs`, `StartupManager.cs`, `DeviceIdentityResolver.cs`,
+`RawInputWindow.cs` y `TrayApplicationContext.cs`. También toma los criterios de
 `SettingsPanelVisualContract.cs`, del arnés de interfaz y del instalador.
 
 No se copió nada de la capa anterior al fork. Los dos archivos de RightKeyboard que
-proceden de ella —`Program.cs`, importado el 7 de enero de 2020, y `Configuration.cs`,
-del 13 de junio de 2020— se reescribieron aquí desde cero. El `Program.cs` de este
-repositorio solo comparte con aquel el `[STAThread] static void Main` obligatorio, y su
-`Configuration.cs` no comparte modelo ni código. El icono tampoco se pudo reutilizar:
-el de RightKeyboard entró con esa misma importación de 2020.
+vienen de esa capa, `Program.cs` (importado el 7 de enero de 2020) y
+`Configuration.cs` (del 13 de junio de 2020), se escribieron aquí desde cero. El
+`Program.cs` de este repositorio solo comparte con aquel el
+`[STAThread] static void Main` obligatorio, y `Configuration.cs` no comparte modelo ni
+código. El icono tampoco se reutilizó, porque el de RightKeyboard llegó en esa misma
+importación de 2020.
 
-La detección y descarga de prerequisitos del instalador viene de Collatio-Sen, del
-mismo autor.
+La detección y descarga de requisitos del instalador vienen de Collatio-Sen, del mismo
+autor.
