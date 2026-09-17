@@ -371,7 +371,7 @@
                                 <TextBox
                                     x:Name="AliasTextBox"
                                     AutomationProperties.Name="Nombre del radio"
-                                    PlaceholderText="Nombre opcional, por ejemplo «Adaptador USB»" />
+                                    PlaceholderText="Nombre (opcional)" />
                                 <Button
                                     x:Name="AddButton"
                                     Grid.Column="1"
