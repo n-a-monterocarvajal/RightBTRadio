@@ -4,8 +4,12 @@ obj/
 *.user
 *.suo
 TestResults/
-artifacts/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
 artifacts/
+
+# Configuración local de herramientas de desarrollo.
+.claude/
+.mcp.json
+.ignore
