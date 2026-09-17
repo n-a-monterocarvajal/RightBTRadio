@@ -12,7 +12,17 @@ using Microsoft.UI.Xaml.Media;
 namespace RightBTRadio.WinUI;
 
 /// <summary>Una fila de cualquiera de las dos listas.</summary>
-public sealed class RadioRow
+/// <param name="Kind">«Interno» o «Externo». Informativo: no interviene en la prioridad.</param>
+/// <param name="Description">Estado del dispositivo como lo describe el Administrador de dispositivos.</param>
+public sealed record RadioRow(
+    string Position,
+    string Primary,
+    string Secondary,
+    string Kind,
+    string State,
+    string Description,
+    bool Connected,
+    string HardwareId)
 {
     // Mismos colores que el indicador de conexión de RightKeyboard.
     private static readonly SolidColorBrush ConnectedBrush =
@@ -20,44 +30,6 @@ public sealed class RadioRow
 
     private static readonly SolidColorBrush DisconnectedBrush =
         new(Windows.UI.Color.FromArgb(255, 117, 117, 117));
-
-    public RadioRow(
-        string position,
-        string primary,
-        string secondary,
-        string kind,
-        string state,
-        string description,
-        bool connected,
-        string hardwareId)
-    {
-        Position = position;
-        Primary = primary;
-        Secondary = secondary;
-        Kind = kind;
-        State = state;
-        Description = description;
-        Connected = connected;
-        HardwareId = hardwareId;
-    }
-
-    public string Position { get; }
-
-    public string Primary { get; }
-
-    public string Secondary { get; }
-
-    /// <summary>«Interno» o «Externo». Informativo: no interviene en la prioridad.</summary>
-    public string Kind { get; }
-
-    public string State { get; }
-
-    /// <summary>Estado del dispositivo en la forma en que lo describe el Administrador de dispositivos.</summary>
-    public string Description { get; }
-
-    public bool Connected { get; }
-
-    public string HardwareId { get; }
 
     public string ConnectionText => Connected ? "Conectado" : "Desconectado";
 
@@ -284,10 +256,10 @@ public sealed partial class SettingsWindow : Window
         loading = true;
         try
         {
-            configuration = LoadConfiguration();
+            configuration = Configuration.LoadOrDefault(out _);
             radios = BluetoothRadios.Enumerate();
             lastSignature = Signature(radios);
-            List<ConfiguredDevice> configured = configuration.DefaultGroup.Devices;
+            List<ConfiguredDevice> configured = configuration.Devices;
 
             // La lista muestra los radios presentes y, además, los que están en el grupo
             // pero no se detectan ahora. Sin esos últimos el indicador de conexión no
@@ -302,39 +274,31 @@ public sealed partial class SettingsWindow : Window
                     Kind(radio),
                     State(radio),
                     DeviceStatusText.Describe(radio.Problem),
-                    connected: true,
+                    Connected: true,
                     radio.HardwareId));
             }
 
             foreach (ConfiguredDevice device in configured.Where(device => FindRadio(device.HardwareId) is null))
             {
-                devices.Add(new RadioRow(
-                    string.Empty,
-                    device.Alias.Length > 0 ? device.Alias : device.HardwareId,
-                    device.HardwareId,
-                    "—",
-                    "—",
-                    "Este radio está en el grupo pero no se detecta ahora.",
-                    connected: false,
-                    device.HardwareId));
+                devices.Add(MissingRow(device, string.Empty));
             }
 
             priority.Clear();
             for (int index = 0; index < configured.Count; index++)
             {
                 ConfiguredDevice device = configured[index];
-                BluetoothRadio? radio = FindRadio(device.HardwareId);
-                priority.Add(new RadioRow(
-                    (index + 1).ToString(),
-                    device.Alias.Length > 0 ? device.Alias : device.HardwareId,
-                    radio?.Name ?? device.HardwareId,
-                    radio is null ? "—" : Kind(radio),
-                    radio is null ? "—" : State(radio),
-                    radio is null
-                        ? "Este radio está en el grupo pero no se detecta ahora."
-                        : DeviceStatusText.Describe(radio.Problem),
-                    connected: radio is not null,
-                    device.HardwareId));
+                string position = (index + 1).ToString();
+                priority.Add(FindRadio(device.HardwareId) is BluetoothRadio radio
+                    ? new RadioRow(
+                        position,
+                        DisplayName(device),
+                        radio.Name,
+                        Kind(radio),
+                        State(radio),
+                        DeviceStatusText.Describe(radio.Problem),
+                        Connected: true,
+                        device.HardwareId)
+                    : MissingRow(device, position));
             }
 
             StartWithWindowsToggle.IsOn = StartupManager.IsEnabled;
@@ -352,18 +316,19 @@ public sealed partial class SettingsWindow : Window
         UpdateButtons();
     }
 
-    private static Configuration LoadConfiguration()
-    {
-        try
-        {
-            return Configuration.Load();
-        }
-        catch (Exception error) when (error is IOException or InvalidDataException or System.Text.Json.JsonException)
-        {
-            Log.Write($"No se pudo cargar la configuración: {error.Message}");
-            return new Configuration();
-        }
-    }
+    private static string DisplayName(ConfiguredDevice device) =>
+        device.Alias.Length > 0 ? device.Alias : device.HardwareId;
+
+    /// <summary>Fila de un radio del grupo que no se detecta ahora.</summary>
+    private static RadioRow MissingRow(ConfiguredDevice device, string position) => new(
+        position,
+        DisplayName(device),
+        device.HardwareId,
+        "—",
+        "—",
+        "Este radio está en el grupo pero no se detecta ahora.",
+        Connected: false,
+        device.HardwareId);
 
     private static string State(BluetoothRadio radio) => radio switch
     {
@@ -401,7 +366,7 @@ public sealed partial class SettingsWindow : Window
     {
         string? hardwareId = SelectedDeviceHardwareId;
         bool inGroup = hardwareId is not null &&
-            configuration.DefaultGroup.Devices.Any(device => Matches(device, hardwareId));
+            configuration.Devices.Any(device => Matches(device, hardwareId));
 
         AddButton.IsEnabled = hardwareId is not null;
         AddButtonText.Text = inGroup ? "Actualizar alias" : "Agregar";
@@ -423,7 +388,7 @@ public sealed partial class SettingsWindow : Window
         string? hardwareId = SelectedDeviceHardwareId;
         ConfiguredDevice? device = hardwareId is null
             ? null
-            : configuration.DefaultGroup.Devices.FirstOrDefault(candidate => Matches(candidate, hardwareId));
+            : configuration.Devices.FirstOrDefault(candidate => Matches(candidate, hardwareId));
         AliasTextBox.Text = device?.Alias ?? string.Empty;
         UpdateButtons();
     }
@@ -437,7 +402,7 @@ public sealed partial class SettingsWindow : Window
             return;
         }
 
-        List<ConfiguredDevice> group = configuration.DefaultGroup.Devices;
+        List<ConfiguredDevice> group = configuration.Devices;
         ConfiguredDevice? device = group.FirstOrDefault(candidate => Matches(candidate, hardwareId));
         if (device is null)
         {
@@ -475,7 +440,7 @@ public sealed partial class SettingsWindow : Window
             return;
         }
 
-        configuration.DefaultGroup.Devices.RemoveAll(device => Matches(device, hardwareId));
+        configuration.Devices.RemoveAll(device => Matches(device, hardwareId));
         Save(hardwareId);
     }
 
@@ -492,7 +457,7 @@ public sealed partial class SettingsWindow : Window
         }
 
         int target = index + offset;
-        List<ConfiguredDevice> group = configuration.DefaultGroup.Devices;
+        List<ConfiguredDevice> group = configuration.Devices;
         if (target < 0 || target >= group.Count)
         {
             return;

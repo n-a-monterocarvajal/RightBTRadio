@@ -62,7 +62,7 @@ internal static class Program
         switch (args[0])
         {
             case "--apply":
-                Console.WriteLine($"Nodos cambiados: {RadioService.Apply(LoadConfiguration())}");
+                Console.WriteLine($"Nodos cambiados: {RadioService.Apply(Configuration.LoadOrDefault(out _))}");
                 return 0;
 
             case "--enable-all":
@@ -96,18 +96,6 @@ internal static class Program
         }
     }
 
-    private static Configuration LoadConfiguration()
-    {
-        try
-        {
-            return Configuration.Load();
-        }
-        catch (Exception error) when (error is IOException or InvalidDataException or System.Text.Json.JsonException)
-        {
-            Log.Write($"No se pudo cargar la configuración: {error.Message}");
-            return new Configuration();
-        }
-    }
 
     [DllImport("kernel32.dll")]
     private static extern bool AttachConsole(uint processId);

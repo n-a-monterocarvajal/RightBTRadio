@@ -33,7 +33,6 @@ internal static class ElevatedTasks
         }
     }
 
-    public static bool Exists(string taskName) => RunSchtasks(out _, "/Query", "/TN", taskName) == 0;
 
     /// <summary>Ejecutable que la tarea lanza, o nulo si no está registrada.</summary>
     internal static string? RegisteredExecutable(string taskName)
@@ -127,23 +126,11 @@ internal static class ElevatedTasks
                 </Principal>
               </Principals>
               <Settings>
+                <!-- Solo lo que difiere de los valores por omisión del Programador de tareas. -->
                 <MultipleInstancesPolicy>Queue</MultipleInstancesPolicy>
                 <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
                 <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
-                <AllowHardTerminate>true</AllowHardTerminate>
-                <StartWhenAvailable>false</StartWhenAvailable>
-                <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
-                <IdleSettings>
-                  <StopOnIdleEnd>false</StopOnIdleEnd>
-                  <RestartOnIdle>false</RestartOnIdle>
-                </IdleSettings>
-                <AllowStartOnDemand>true</AllowStartOnDemand>
-                <Enabled>true</Enabled>
-                <Hidden>false</Hidden>
-                <RunOnlyIfIdle>false</RunOnlyIfIdle>
-                <WakeToRun>false</WakeToRun>
                 <ExecutionTimeLimit>PT2M</ExecutionTimeLimit>
-                <Priority>7</Priority>
               </Settings>
               <Actions Context="Author">
                 <Exec>

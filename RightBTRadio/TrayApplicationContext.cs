@@ -80,19 +80,17 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private static Configuration LoadConfiguration()
     {
-        try
-        {
-            return Configuration.Load();
-        }
-        catch (Exception error) when (error is IOException or InvalidDataException or System.Text.Json.JsonException)
+        Configuration configuration = Configuration.LoadOrDefault(out string? error);
+        if (error is not null)
         {
             MessageBox.Show(
-                $"No se pudo cargar la configuración.\n\n{error.Message}",
+                $"No se pudo cargar la configuración.\n\n{error}",
                 "RightBTRadio",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
-            return new Configuration();
         }
+
+        return configuration;
     }
 
     /// <summary>

@@ -5,7 +5,7 @@ namespace RightBTRadio;
 
 /// <summary>
 /// Un dispositivo asignado a un grupo. La prioridad no se guarda como número: es la
-/// posición dentro de <see cref="PriorityGroup.Devices"/>, así que reordenar la lista
+/// posición dentro de <see cref="Configuration.Devices"/>, así que reordenar la lista
 /// y renumerar no pueden divergir. La primera posición es la máxima prioridad.
 /// </summary>
 // No hay un campo de permanencia, interno contra externo, y es deliberado. La lista del
@@ -31,15 +31,6 @@ internal enum ThemePreference
     Dark
 }
 
-internal sealed class PriorityGroup
-{
-    public required string Id { get; set; }
-
-    public required string Name { get; set; }
-
-    public List<ConfiguredDevice> Devices { get; set; } = [];
-}
-
 /// <summary>
 /// Preferencias en <c>%LocalAppData%\RightBTRadio\preferences.json</c>. Reproduce el
 /// mecanismo de RightKeyboard —camelCase indentado y escritura atómica por archivo
@@ -48,7 +39,6 @@ internal sealed class PriorityGroup
 internal sealed class Configuration
 {
     public const int CurrentSchemaVersion = 1;
-    public const string DefaultGroupId = "bluetooth-radios";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -69,27 +59,8 @@ internal sealed class Configuration
     [JsonConverter(typeof(JsonStringEnumConverter<ThemePreference>))]
     public ThemePreference Theme { get; set; } = ThemePreference.System;
 
-    public List<PriorityGroup> Groups { get; set; } = [];
-
-    /// <summary>
-    /// El grupo único que expone la interfaz hoy. El modelo admite varios; la interfaz
-    /// todavía no los necesita.
-    /// </summary>
-    [JsonIgnore]
-    public PriorityGroup DefaultGroup
-    {
-        get
-        {
-            PriorityGroup? group = Groups.FirstOrDefault(candidate => candidate.Id == DefaultGroupId);
-            if (group is null)
-            {
-                group = new PriorityGroup { Id = DefaultGroupId, Name = "Radios Bluetooth" };
-                Groups.Add(group);
-            }
-
-            return group;
-        }
-    }
+    /// <summary>El grupo de prioridad. El primero es el de mayor prioridad.</summary>
+    public List<ConfiguredDevice> Devices { get; set; } = [];
 
     public static string GetConfigFilePath() => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -115,6 +86,25 @@ internal sealed class Configuration
         }
 
         return configuration;
+    }
+
+    /// <summary>
+    /// Carga la configuración o, si el archivo no se puede leer, devuelve la de fábrica y
+    /// el motivo en <paramref name="error"/>.
+    /// </summary>
+    public static Configuration LoadOrDefault(out string? error)
+    {
+        try
+        {
+            error = null;
+            return Load();
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or JsonException)
+        {
+            error = exception.Message;
+            Log.Write($"No se pudo cargar la configuración: {error}");
+            return new Configuration();
+        }
     }
 
     public void Save(string? path = null)

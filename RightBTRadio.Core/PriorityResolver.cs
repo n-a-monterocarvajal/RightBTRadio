@@ -15,8 +15,6 @@ internal sealed record ResolutionPlan(
     IReadOnlyList<BluetoothRadio> Disable)
 {
     public static readonly ResolutionPlan Empty = new(null, null, []);
-
-    public bool IsEmpty => Enable is null && Disable.Count == 0;
 }
 
 internal static class PriorityResolver
@@ -26,7 +24,7 @@ internal static class PriorityResolver
     /// prioridad y deshabilita los demás. Los radios presentes que no pertenecen al
     /// grupo no se tocan: el usuario no pidió nada sobre ellos.
     /// </summary>
-    public static ResolutionPlan Resolve(PriorityGroup group, IReadOnlyList<BluetoothRadio> present)
+    public static ResolutionPlan Resolve(IReadOnlyList<ConfiguredDevice> group, IReadOnlyList<BluetoothRadio> present)
     {
         // Dos radios idénticos comparten hardware ID; se elige uno de forma
         // determinista para que la resolución no oscile entre ejecuciones.
@@ -38,7 +36,7 @@ internal static class PriorityResolver
                 StringComparer.OrdinalIgnoreCase);
 
         List<BluetoothRadio> candidates = [];
-        foreach (ConfiguredDevice device in group.Devices)
+        foreach (ConfiguredDevice device in group)
         {
             if (byHardwareId.TryGetValue(device.HardwareId, out BluetoothRadio? radio))
             {

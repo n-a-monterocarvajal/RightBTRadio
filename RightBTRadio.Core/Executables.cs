@@ -46,14 +46,7 @@ internal static class Executables
             return beside;
         }
 
-        // Instalaciones anteriores a que los dos ejecutables compartieran carpeta.
-        string legacy = Path.Combine(AppContext.BaseDirectory, "ui", name);
-        if (File.Exists(legacy))
-        {
-            return legacy;
-        }
-
-        // ponytail: rutas del árbol de compilación. Sobran en cuanto haya instalador.
+        // En desarrollo cada proyecto compila en su propia carpeta; el arnés depende de esto.
         if (FindRepositoryRoot() is not string root)
         {
             return null;

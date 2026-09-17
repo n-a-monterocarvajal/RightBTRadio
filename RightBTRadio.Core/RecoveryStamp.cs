@@ -26,13 +26,9 @@ internal static class RecoveryStamp
     public static bool ShouldAttempt(string hardwareId, uint problem)
     {
         string key = $"{hardwareId}|{problem}";
-        (string Key, DateTimeOffset When)? last = Read();
-        if (last is null || !string.Equals(last.Value.Key, key, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return DateTimeOffset.UtcNow - last.Value.When > Cooldown;
+        return Read() is not (string lastKey, DateTimeOffset when) ||
+            !string.Equals(lastKey, key, StringComparison.OrdinalIgnoreCase) ||
+            DateTimeOffset.UtcNow - when > Cooldown;
     }
 
     public static void Record(string hardwareId, uint problem)
@@ -55,18 +51,16 @@ internal static class RecoveryStamp
     {
         try
         {
-            string[] parts = File.ReadAllText(FilePath).Split('|');
-            if (parts.Length != 3 ||
-                !DateTimeOffset.TryParse(
-                    parts[2],
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.RoundtripKind,
-                    out DateTimeOffset when))
-            {
-                return null;
-            }
-
-            return ($"{parts[0]}|{parts[1]}", when);
+            // La marca es «clave|fecha», y la clave ya lleva su propio separador.
+            string stamp = File.ReadAllText(FilePath);
+            int separator = stamp.LastIndexOf('|');
+            return separator > 0 && DateTimeOffset.TryParse(
+                stamp[(separator + 1)..],
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out DateTimeOffset when)
+                ? (stamp[..separator], when)
+                : null;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {

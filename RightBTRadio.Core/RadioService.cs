@@ -13,7 +13,6 @@ internal static class RadioService
     private const int SettlingMilliseconds = 3000;
     private const int RecoveryAttempts = 6;
 
-
     /// <summary>
     /// Deja habilitado el radio presente de mayor prioridad del grupo y deshabilita el
     /// resto. Devuelve cuántos nodos cambiaron.
@@ -21,27 +20,15 @@ internal static class RadioService
     public static int Apply(Configuration configuration)
     {
         IReadOnlyList<BluetoothRadio> present = BluetoothRadios.Enumerate();
-        ResolutionPlan plan = PriorityResolver.Resolve(configuration.DefaultGroup, present);
+        ResolutionPlan plan = PriorityResolver.Resolve(configuration.Devices, present);
         if (plan.Winner is null)
         {
             return 0;
         }
 
-        int changed = 0;
-
         // Habilitar antes de deshabilitar: así no hay un instante sin ningún radio.
-        if (plan.Enable is not null && SetEnabled(plan.Enable, enabled: true))
-        {
-            changed++;
-        }
-
-        foreach (BluetoothRadio radio in plan.Disable)
-        {
-            if (SetEnabled(radio, enabled: false))
-            {
-                changed++;
-            }
-        }
+        int changed = plan.Enable is not null && SetEnabled(plan.Enable, enabled: true) ? 1 : 0;
+        changed += plan.Disable.Count(radio => SetEnabled(radio, enabled: false));
 
         // La recuperación no depende de que algo haya cambiado. Cuando el grupo tiene un
         // solo candidato presente no hay nada que habilitar ni deshabilitar, y ese es
@@ -51,19 +38,9 @@ internal static class RadioService
     }
 
     /// <summary>Habilita todos los radios deshabilitados. Devuelve cuántos cambiaron.</summary>
-    public static int EnableAll()
-    {
-        int changed = 0;
-        foreach (BluetoothRadio radio in BluetoothRadios.Enumerate().Where(radio => !radio.Enabled))
-        {
-            if (SetEnabled(radio, enabled: true))
-            {
-                changed++;
-            }
-        }
-
-        return changed;
-    }
+    public static int EnableAll() => BluetoothRadios.Enumerate()
+        .Where(radio => !radio.Enabled)
+        .Count(radio => SetEnabled(radio, enabled: true));
 
     /// <summary>
     /// Windows no admite dos radios Bluetooth a la vez: mientras había otro presente, el

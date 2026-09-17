@@ -18,12 +18,9 @@ internal static class Log
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.AppendAllText(path, $"{DateTime.Now:s} {message}{Environment.NewLine}");
         }
-        catch (IOException)
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
             // Un registro que no se puede escribir no debe tumbar la bandeja.
-        }
-        catch (UnauthorizedAccessException)
-        {
         }
     }
 }

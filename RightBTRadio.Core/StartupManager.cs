@@ -33,59 +33,43 @@ internal static class StartupManager
     /// una entrada válida, y esta propiedad se lee al construir la ventana: lanzar aquí
     /// tumbaría la ventana entera por una preferencia secundaria.
     /// </remarks>
-    public static bool IsEnabled => Executables.FindTray() is string tray &&
-        IsEnabledCore(RunKeyPath, StartupApprovedKeyPath, ValueName, Quote(tray));
+    public static bool IsEnabled
+    {
+        get
+        {
+            if (Executables.FindTray() is not string tray)
+            {
+                return false;
+            }
+
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
+            if (key?.GetValue(ValueName) is not string stored ||
+                !string.Equals(stored, Quote(tray), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            using RegistryKey? approvalKey = Registry.CurrentUser.OpenSubKey(StartupApprovedKeyPath);
+            return approvalKey?.GetValue(ValueName) is not byte[] approval || IsApproved(approval);
+        }
+    }
 
     /// <exception cref="FileNotFoundException">Al activar, si no se encuentra el residente.</exception>
     public static void SetEnabled(bool enabled)
     {
-        if (!enabled)
+        // Para quitar la entrada no hace falta saber a qué apuntaba; para escribirla sí,
+        // y se resuelve antes de abrir la clave para no dejarla a medias si falla.
+        string? command = enabled ? Quote(TrayExecutablePath) : null;
+        using RegistryKey key = Registry.CurrentUser.CreateSubKey(RunKeyPath, true);
+        if (command is null)
         {
-            // Para quitar la entrada no hace falta saber a qué apuntaba.
-            SetEnabledCore(RunKeyPath, StartupApprovedKeyPath, ValueName, string.Empty, enabled: false);
+            key.DeleteValue(ValueName, false);
             return;
         }
 
-        SetEnabledCore(RunKeyPath, StartupApprovedKeyPath, ValueName, Quote(TrayExecutablePath), enabled: true);
-    }
-
-    // Núcleo verificable: opera sobre HKCU con rutas, valor y comando explícitos para
-    // poder aislarlo en pruebas sin tocar la clave Run real del usuario.
-    internal static bool IsEnabledCore(
-        string runKeyPath,
-        string approvedKeyPath,
-        string valueName,
-        string command)
-    {
-        using RegistryKey? key = Registry.CurrentUser.OpenSubKey(runKeyPath);
-        if (key?.GetValue(valueName) is not string stored ||
-            !string.Equals(stored, command, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        using RegistryKey? approvalKey = Registry.CurrentUser.OpenSubKey(approvedKeyPath);
-        return approvalKey?.GetValue(valueName) is not byte[] approval || IsApproved(approval);
-    }
-
-    internal static void SetEnabledCore(
-        string runKeyPath,
-        string approvedKeyPath,
-        string valueName,
-        string command,
-        bool enabled)
-    {
-        using RegistryKey key = Registry.CurrentUser.CreateSubKey(runKeyPath, true);
-        if (enabled)
-        {
-            using RegistryKey? approvalKey = Registry.CurrentUser.OpenSubKey(approvedKeyPath, true);
-            approvalKey?.DeleteValue(valueName, false);
-            key.SetValue(valueName, command, RegistryValueKind.String);
-        }
-        else
-        {
-            key.DeleteValue(valueName, false);
-        }
+        using RegistryKey? approvalKey = Registry.CurrentUser.OpenSubKey(StartupApprovedKeyPath, true);
+        approvalKey?.DeleteValue(ValueName, false);
+        key.SetValue(ValueName, command, RegistryValueKind.String);
     }
 
     private static bool IsApproved(byte[] approval) => approval.Length == 0 || approval[0] != 3;

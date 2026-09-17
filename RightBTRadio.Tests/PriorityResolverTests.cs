@@ -5,12 +5,14 @@ namespace RightBTRadio.Tests;
 [TestFixture]
 public sealed class PriorityResolverTests
 {
-    private static PriorityGroup Group(params string[] hardwareIds) => new()
+    private static List<ConfiguredDevice> Group(params string[] hardwareIds) =>
+        hardwareIds.Select(id => new ConfiguredDevice { HardwareId = id }).ToList();
+
+    private static void AssertNoChanges(ResolutionPlan plan)
     {
-        Id = Configuration.DefaultGroupId,
-        Name = "Radios Bluetooth",
-        Devices = hardwareIds.Select(id => new ConfiguredDevice { HardwareId = id }).ToList()
-    };
+        Assert.That(plan.Enable, Is.Null);
+        Assert.That(plan.Disable, Is.Empty);
+    }
 
     private static BluetoothRadio Radio(string hardwareId, bool enabled = true) =>
         new(hardwareId, $@"INSTANCE\{hardwareId}", hardwareId, enabled ? 0u : BluetoothRadio.ProblemDisabled, Removable: true);
@@ -55,7 +57,7 @@ public sealed class PriorityResolverTests
             Group("EXTERNO", "INTERNO"),
             [Radio("EXTERNO"), Radio("INTERNO", enabled: false)]);
 
-        Assert.That(plan.IsEmpty, Is.True);
+        AssertNoChanges(plan);
     }
 
     [Test]
@@ -65,7 +67,7 @@ public sealed class PriorityResolverTests
             Group("EXTERNO"),
             [Radio("EXTERNO"), Radio("DESCONOCIDO")]);
 
-        Assert.That(plan.IsEmpty, Is.True);
+        AssertNoChanges(plan);
     }
 
     [Test]
@@ -73,7 +75,7 @@ public sealed class PriorityResolverTests
     {
         ResolutionPlan plan = PriorityResolver.Resolve(Group("EXTERNO", "INTERNO"), []);
 
-        Assert.That(plan.IsEmpty, Is.True);
+        AssertNoChanges(plan);
     }
 
     [Test]
@@ -115,8 +117,8 @@ public sealed class PriorityResolverTests
         ResolutionPlan directo = PriorityResolver.Resolve(Group("IGUAL"), [primero, segundo]);
         ResolutionPlan inverso = PriorityResolver.Resolve(Group("IGUAL"), [segundo, primero]);
 
-        Assert.That(directo.IsEmpty, Is.True);
-        Assert.That(inverso.IsEmpty, Is.True);
+        AssertNoChanges(directo);
+        AssertNoChanges(inverso);
     }
 
     [Test]
