@@ -73,7 +73,7 @@ internal static class Program
                 foreach (BluetoothRadio radio in BluetoothRadios.Enumerate())
                 {
                     Console.WriteLine(
-                        $"problema {radio.Problem,-3}  {radio.HardwareId}  {radio.Name}");
+                        $"código {radio.Problem,-3}  {radio.HardwareId}  {radio.Name}");
                 }
 
                 return 0;

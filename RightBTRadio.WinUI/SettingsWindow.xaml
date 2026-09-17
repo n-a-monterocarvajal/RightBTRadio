@@ -113,7 +113,7 @@
                                     OnContent="Sí"
                                     Toggled="OnStartMinimizedToggled">
                                     <ToggleSwitch.Header>
-                                        <TextBlock Text="Iniciar minimizado en el área de notificación" TextWrapping="Wrap" />
+                                        <TextBlock Text="Iniciar solo en el área de notificación, sin abrir esta ventana" TextWrapping="Wrap" />
                                     </ToggleSwitch.Header>
                                 </ToggleSwitch>
                                 <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
@@ -224,26 +224,26 @@
                                     <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Ayuda y preguntas frecuentes" />
 
                                     <Expander Header="¿Por qué deshabilitar un radio?">
-                                        <TextBlock Padding="0,12,0,4" Text="Windows no maneja dos radios Bluetooth a la vez. Con un adaptador USB conectado teniendo uno integrado, uno de los dos queda con el código de problema 31 y deja de funcionar. RightBTRadio deja habilitado uno solo y deshabilita el resto." />
+                                        <TextBlock Padding="0,12,0,4" Text="Windows no puede usar dos radios Bluetooth a la vez. Si conecta un adaptador USB a un equipo que ya tiene Bluetooth integrado, uno de los dos deja de funcionar y el Administrador de dispositivos muestra el código 31. RightBTRadio deja habilitado un solo radio y deshabilita los demás." />
                                     </Expander>
 
                                     <Expander Header="¿Qué radio queda habilitado?">
-                                        <TextBlock Padding="0,12,0,4" Text="El primero del grupo de prioridad que esté conectado. Si lo desconecta, pasa al siguiente; al reconectarlo, vuelve a quedar habilitado. Los radios que no están en el grupo no se tocan." />
+                                        <TextBlock Padding="0,12,0,4" Text="El primer radio conectado del grupo de prioridad. Si lo desconecta, se habilita el siguiente de la lista. Cuando lo vuelve a conectar, recupera su lugar. RightBTRadio no modifica los radios que no están en el grupo." />
                                     </Expander>
 
                                     <Expander Header="¿Qué pasa con los dispositivos emparejados?">
                                         <StackPanel Padding="0,12,0,4" Spacing="8">
-                                            <TextBlock Text="Deshabilitar un radio corta todo lo emparejado a él. Si ese radio lleva su teclado o su ratón, se quedará sin ellos hasta conectarlos por cable." />
-                                            <TextBlock Opacity="0.78" Text="Para salir de eso, use «Habilitar todos los radios» en el menú del área de notificación. Desinstalar la aplicación también los habilita." />
+                                            <TextBlock Text="Al deshabilitar un radio se desconecta todo lo que está emparejado con él. Si su teclado o su mouse usan ese radio, dejarán de responder hasta que los conecte por cable." />
+                                            <TextBlock Opacity="0.78" Text="Para recuperarlos, haga clic con el botón derecho en el icono de RightBTRadio, en el área de notificación, y elija «Habilitar todos los radios». Desinstalar la aplicación también los habilita." />
                                         </StackPanel>
                                     </Expander>
 
                                     <Expander Header="¿Qué significan «Interno» y «Externo»?">
-                                        <TextBlock Padding="0,12,0,4" Text="Es lo que Windows informa sobre si el radio puede retirarse del equipo. Solo es informativo: la prioridad la decide únicamente el orden del grupo." />
+                                        <TextBlock Padding="0,12,0,4" Text="Indican si Windows considera que el radio se puede quitar del equipo, como un adaptador USB, o si viene integrado. Es solo informativo: la prioridad depende únicamente del orden del grupo." />
                                     </Expander>
 
-                                    <Expander Header="¿Por qué pidió permiso de administrador?">
-                                        <TextBlock Padding="0,12,0,4" Text="Habilitar y deshabilitar dispositivos lo exige. La aplicación registra una vez dos tareas programadas que hacen ese trabajo, y después funciona sin volver a pedir permiso." />
+                                    <Expander Header="¿Por qué se pidió permiso de administrador?">
+                                        <TextBlock Padding="0,12,0,4" Text="Windows lo exige para habilitar y deshabilitar dispositivos. RightBTRadio registra una sola vez dos tareas programadas que hacen ese trabajo. Después no vuelve a pedir permiso." />
                                     </Expander>
                                 </StackPanel>
                             </ScrollViewer>
@@ -370,8 +370,8 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBox
                                     x:Name="AliasTextBox"
-                                    AutomationProperties.Name="Alias"
-                                    PlaceholderText="Alias, por ejemplo Toocki" />
+                                    AutomationProperties.Name="Nombre del radio"
+                                    PlaceholderText="Nombre opcional, por ejemplo «Adaptador USB»" />
                                 <Button
                                     x:Name="AddButton"
                                     Grid.Column="1"

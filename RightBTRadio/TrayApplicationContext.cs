@@ -84,7 +84,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if (error is not null)
         {
             MessageBox.Show(
-                $"No se pudo cargar la configuración.\n\n{error}",
+                $"No se pudieron leer los ajustes. RightBTRadio usará los valores predeterminados.\n\n{error}",
                 "RightBTRadio",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
@@ -105,10 +105,10 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
 
         DialogResult answer = MessageBox.Show(
-            "RightBTRadio necesita registrar dos tareas programadas para poder habilitar y " +
+            "RightBTRadio necesita registrar dos tareas programadas para habilitar y " +
             "deshabilitar radios Bluetooth.\n\n" +
-            "Windows va a pedir permiso de administrador una sola vez. Después de esto la " +
-            "aplicación funciona sin volver a pedirlo.\n\n¿Registrarlas ahora?",
+            "Windows pedirá permiso de administrador una sola vez. Después, la aplicación " +
+            "no volverá a pedirlo.\n\n¿Desea registrarlas ahora?",
             "RightBTRadio",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
@@ -140,7 +140,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             notifyIcon.ShowBalloonTip(
                 5000,
                 "RightBTRadio",
-                "Sin las tareas programadas no se puede cambiar el estado de los radios.",
+                "Sin las tareas programadas, RightBTRadio no puede habilitar ni deshabilitar radios. Vuelva a abrir la aplicación para registrarlas.",
                 ToolTipIcon.Warning);
         }
     }
@@ -157,7 +157,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         notifyIcon.ShowBalloonTip(
             3000,
             "RightBTRadio",
-            "Se habilitaron todos los radios. La prioridad vuelve a aplicarse en el próximo cambio de dispositivos.",
+            "Se habilitaron todos los radios. La prioridad se aplicará otra vez cuando conecte o desconecte un dispositivo.",
             ToolTipIcon.Info);
     }
 
@@ -172,7 +172,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if (executable is null)
         {
             MessageBox.Show(
-                "No se encontró RightBTRadio.WinUI.exe junto al ejecutable de bandeja.",
+                "No se encontró la ventana de ajustes (RightBTRadio.WinUI.exe). Reinstale la aplicación.",
                 "RightBTRadio",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);

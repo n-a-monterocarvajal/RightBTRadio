@@ -39,7 +39,7 @@ internal sealed class NativeTrayMenu : IDisposable
             throw new InvalidOperationException("Windows no pudo crear el menú de la bandeja.");
         }
 
-        AppendMenuW(handle, MfString, (uint)TrayMenuCommand.Settings, "Configuración");
+        AppendMenuW(handle, MfString, (uint)TrayMenuCommand.Settings, "Ajustes");
         AppendMenuW(handle, MfString, (uint)TrayMenuCommand.EnableAll, "Habilitar todos los radios");
         AppendMenuW(handle, MfSeparator, 0, null);
         AppendMenuW(handle, MfString, (uint)TrayMenuCommand.Exit, "Salir");

@@ -216,7 +216,7 @@ begin
   if WaitForApplicationToClose then
     Result := ''
   else
-    Result := 'No se pudo cerrar RightBTRadio de forma segura. Ciérrelo desde el icono del área de notificación y vuelva a intentarlo.';
+    Result := 'No se pudo cerrar RightBTRadio. Haga clic con el botón derecho en su icono del área de notificación, elija Salir y vuelva a intentarlo.';
 end;
 
 { Las descargas van después de «Listo para instalar» y antes de copiar el payload: el usuario ya
@@ -310,7 +310,7 @@ begin
     Exit;
   end;
 
-  { Las tareas se registran acá, con los archivos ya copiados y el instalador todavía elevado. Es
+  { Las tareas se registran aquí, con los archivos ya copiados y el instalador todavía elevado. Es
     lo que le ahorra al usuario el aviso de UAC que pediría el primer arranque. Quedan a nombre de
     quien instala; otro usuario de la misma máquina las registra desde la aplicación. }
   if CurStep = ssPostInstall then
@@ -319,7 +319,7 @@ begin
     if not Exec(ExpandConstant('{app}\RightBTRadio.exe'), '--register-tasks',
       ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
       MsgBox('No se pudieron registrar las tareas programadas de RightBTRadio.' + #13#10 + #13#10 +
-        'La aplicación las volverá a pedir la primera vez que se ejecute.', mbInformation, MB_OK);
+        'La aplicación las pedirá la primera vez que se abra.', mbInformation, MB_OK);
   end;
 end;
 
@@ -352,7 +352,7 @@ begin
 
     if CheckForMutexes('{#AppMutex}') then
     begin
-      MsgBox('No se pudo cerrar RightBTRadio de forma segura. Ciérrelo desde el icono del área de notificación y vuelva a ejecutar la desinstalación.',
+      MsgBox('No se pudo cerrar RightBTRadio. Haga clic con el botón derecho en su icono del área de notificación, elija Salir y vuelva a ejecutar la desinstalación.',
         mbError, MB_OK);
       Result := False;
       exit;
@@ -363,8 +363,8 @@ begin
     DeleteUserData := ExpandConstant('{param:BORRARDATOS|0}') = '1'
   else
     DeleteUserData := MsgBox(
-      '¿Desea eliminar también las preferencias y el registro de RightBTRadio?' + #13#10 + #13#10 +
-      'Seleccione No para conservarlos.', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+      '¿Desea eliminar también los ajustes y el registro de actividad de RightBTRadio?' + #13#10 + #13#10 +
+      'Elija No para conservarlos.', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

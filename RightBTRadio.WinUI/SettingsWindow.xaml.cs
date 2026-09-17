@@ -261,7 +261,7 @@ public sealed partial class SettingsWindow : Window
             lastSignature = Signature(radios);
             List<ConfiguredDevice> configured = configuration.Devices;
 
-            // La lista muestra los radios presentes y, además, los que están en el grupo
+            // La lista muestra los radios detectados y, además, los que están en el grupo
             // pero no se detectan ahora. Sin esos últimos el indicador de conexión no
             // tendría nada que informar: todo lo enumerado está conectado por definición.
             devices.Clear();
@@ -326,14 +326,14 @@ public sealed partial class SettingsWindow : Window
         device.HardwareId,
         "—",
         "—",
-        "Este radio está en el grupo pero no se detecta ahora.",
+        "Está en el grupo, pero no está conectado.",
         Connected: false,
         device.HardwareId);
 
     private static string State(BluetoothRadio radio) => radio switch
     {
         { Enabled: false } => "Deshabilitado",
-        { HasProblem: true } => $"Con problema {radio.Problem}",
+        { HasProblem: true } => $"Con error (código {radio.Problem})",
         _ => "Habilitado"
     };
 
@@ -369,8 +369,8 @@ public sealed partial class SettingsWindow : Window
             configuration.Devices.Any(device => Matches(device, hardwareId));
 
         AddButton.IsEnabled = hardwareId is not null;
-        AddButtonText.Text = inGroup ? "Actualizar alias" : "Agregar";
-        AutomationProperties.SetName(AddButton, inGroup ? "Actualizar alias" : "Agregar al grupo");
+        AddButtonText.Text = inGroup ? "Guardar nombre" : "Agregar";
+        AutomationProperties.SetName(AddButton, inGroup ? "Guardar nombre" : "Agregar al grupo");
         RemoveButton.IsEnabled = inGroup;
 
         int index = PriorityList.SelectedIndex;

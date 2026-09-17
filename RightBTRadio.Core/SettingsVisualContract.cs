@@ -12,16 +12,17 @@ namespace RightBTRadio;
 /// </remarks>
 internal static class SettingsVisualContract
 {
-    public const string WindowTitle = "Configuración de RightBTRadio";
+    public const string WindowTitle = "Ajustes de RightBTRadio";
 
     public const string Subtitle =
-        "Mantiene habilitado un solo radio Bluetooth cuando hay varios presentes.";
+        "Mantiene habilitado un solo radio Bluetooth cuando hay varios conectados.";
 
     public const string DevicesDescription =
-        "Los radios presentes y los del grupo. El punto verde indica conexión.";
+        "Los radios detectados en este equipo y los del grupo que no están conectados. " +
+        "El punto verde indica que el radio está conectado.";
 
     public const string PriorityDescription =
-        "El primero de la lista es el que queda habilitado; el resto se deshabilita.";
+        "Queda habilitado el primer radio conectado de la lista. Los demás se deshabilitan.";
 
     public const int MinimumWidth = 1120;
 
