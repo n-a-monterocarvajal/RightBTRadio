@@ -47,6 +47,19 @@ internal static class RecoveryStamp
         }
     }
 
+    /// <summary>Borra la marca. Se llama cuando el reinicio sí recuperó el nodo.</summary>
+    public static void Clear()
+    {
+        try
+        {
+            File.Delete(FilePath);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            // Con la marca vieja en disco solo se espera de más antes del próximo intento.
+        }
+    }
+
     private static (string Key, DateTimeOffset When)? Read()
     {
         try

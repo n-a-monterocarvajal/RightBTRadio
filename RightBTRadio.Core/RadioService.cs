@@ -90,14 +90,24 @@ internal static class RadioService
             return;
         }
 
-        Log.Write($"Tras reiniciar el nodo, {winner.Name} informa el problema {WaitForRecovery(hardwareId)}.");
+        (string outcome, bool recovered) = WaitForRecovery(hardwareId);
+        Log.Write($"Tras reiniciar el nodo, {winner.Name} informa el problema {outcome}.");
+
+        // La marca solo existe para no repetir un reinicio que no arregla nada. Si este
+        // sirvió, el próximo conflicto es una situación nueva y hay que poder atenderlo
+        // enseguida: sin esto, dos ciclos seguidos dejaban al radio con el problema 31
+        // hasta que vencía la espera.
+        if (recovered)
+        {
+            RecoveryStamp.Clear();
+        }
     }
 
     /// <summary>
-    /// Espera a que Windows termine de instalar el controlador. Devuelve el código de
-    /// problema final, 0 si se recuperó.
+    /// Espera a que Windows termine de instalar el controlador. Devuelve cómo quedó el
+    /// nodo, para el registro, y si se recuperó.
     /// </summary>
-    private static string WaitForRecovery(string hardwareId)
+    private static (string Outcome, bool Recovered) WaitForRecovery(string hardwareId)
     {
         for (int attempt = 0; attempt < RecoveryAttempts; attempt++)
         {
@@ -105,16 +115,16 @@ internal static class RadioService
             BluetoothRadio? radio = Find(hardwareId);
             if (radio is null)
             {
-                return "ausente";
+                return ("ausente", false);
             }
 
             if (!radio.HasProblem)
             {
-                return radio.Problem.ToString();
+                return (radio.Problem.ToString(), true);
             }
         }
 
-        return "sin recuperar";
+        return ("sin recuperar", false);
     }
 
     private static BluetoothRadio? Find(string hardwareId) => BluetoothRadios.Enumerate().FirstOrDefault(

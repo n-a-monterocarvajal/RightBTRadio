@@ -269,7 +269,7 @@ public sealed partial class SettingsWindow : Window
             {
                 devices.Add(new RadioRow(
                     string.Empty,
-                    radio.Name,
+                    DisplayName(configured, radio),
                     radio.HardwareId,
                     Kind(radio),
                     State(radio),
@@ -291,7 +291,7 @@ public sealed partial class SettingsWindow : Window
                 priority.Add(FindRadio(device.HardwareId) is BluetoothRadio radio
                     ? new RadioRow(
                         position,
-                        DisplayName(device),
+                        DisplayName(configured, radio),
                         radio.Name,
                         Kind(radio),
                         State(radio),
@@ -315,6 +315,15 @@ public sealed partial class SettingsWindow : Window
 
         UpdateButtons();
     }
+
+    /// <summary>
+    /// Un radio se llama igual esté conectado o no: el nombre que le puso el usuario, y
+    /// si no le puso ninguno, el que informa Windows.
+    /// </summary>
+    private static string DisplayName(IEnumerable<ConfiguredDevice> configured, BluetoothRadio radio) =>
+        configured.FirstOrDefault(device => Matches(device, radio.HardwareId)) is { Alias.Length: > 0 } named
+            ? named.Alias
+            : radio.Name;
 
     private static string DisplayName(ConfiguredDevice device) =>
         device.Alias.Length > 0 ? device.Alias : device.HardwareId;
