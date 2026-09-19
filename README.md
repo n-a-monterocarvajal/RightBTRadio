@@ -31,7 +31,7 @@ segundos. Por eso `--apply` termina con ese ciclo cuando el ganador tiene un pro
 
 Falta comprobar si ese ciclo es la única vía. El comentario `ponytail:` de
 `RadioService.cs` enumera las alternativas sin probar, y hay un
-[issue abierto](https://github.com/n-a-monterocarvajal/RightBTRadio/issues) para
+[issue abierto](https://github.com/n-a-monterocarvajal/RightBTRadio/issues/1) para
 investigarlas.
 
 ## Instalación
