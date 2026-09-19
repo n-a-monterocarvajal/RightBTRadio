@@ -50,6 +50,11 @@ un solo equipo y con un solo par de radios.
   registro de tareas. Antes, con el aviso abierto, el instalador esperaba sin
   respuesta y cancelaba la instalación.
 
+- Un segundo conflicto poco después de una recuperación exitosa se atiende enseguida.
+  Antes, la espera entre intentos también frenaba ese caso y el adaptador quedaba con
+  el código 31 durante dos minutos.
+- Cada radio conserva su nombre en las dos listas, esté conectado o no.
+
 ### Limitaciones conocidas
 
 - Se probó en un solo equipo, con un radio interno Qualcomm Atheros AR3012 y un
